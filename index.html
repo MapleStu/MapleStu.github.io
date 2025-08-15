@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CA-Mochi ImageNotes 10.2</title>
+  <title>CA-Mochi ImageNotes 10.3</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
   <style>
@@ -233,13 +233,13 @@
             <button class="tool-btn" data-tool="circle" id="toolCircle">圓形</button>
             <button class="tool-btn" data-tool="rect" id="toolRect">矩形</button>
             </div>
+            <button id="eraserBtn" class="secondary">橡皮擦</button>
             <button id="addTextBtn">新增文字</button>
             <label id="fontSizeLabel">字體大小 <input id="fontSize" type="number" min="8" max="150" value="20"> px</label>
         </div>
         <div class="group">
             <label id="widthLabel">粗細 <input id="width" type="range" min="1" max="50" step="1" value="5"> <span id="widthVal" class="badge"></span></label>
             <label id="opacityLabel">不透明度 <input id="opacity" type="range" min="0.1" max="1" step="0.05" value="1"> <span id="opacityVal" class="badge"></span></label>
-            <button id="eraserBtn" class="secondary">橡皮擦</button>
             <button id="undo" class="secondary">復原</button>
             <button id="clear" class="secondary">清除筆跡</button>
         </div>
@@ -424,6 +424,7 @@ const opacityInput = document.getElementById('opacity');
 const opacityVal = document.getElementById('opacityVal');
 let currentTool = 'pen';
 let currentOpacity = 1;
+let circleMode = 'center'; // 'center' or 'ellipse'
 
 // NEW: 工具按鈕互斥
 const toolButtons = Array.from(document.querySelectorAll('.tool-btn'));
@@ -483,6 +484,15 @@ toolButtons.forEach(btn => btn.addEventListener('click', () => setActiveTool(btn
     });
 
     let isErasing = false;
+
+    // 圓形工具模式切換：再次點擊已啟用的圓形按鈕，可在「圓心→半徑」與「任意橢圓」之間切換
+    const circleBtn = document.getElementById('toolCircle');
+    circleBtn.addEventListener('click', () => {
+        if (currentTool === 'circle' && !isErasing) {
+            circleMode = (circleMode === 'center') ? 'ellipse' : 'center';
+            showNotice(circleMode === 'center' ? '圓形：以起點為圓心' : '圓形：拉出任意橢圓');
+        }
+    });
 
     // Auto-hide notice
     setTimeout(() => {
@@ -651,9 +661,18 @@ eraserBtn.addEventListener('click', ()=>{
               break;
             case 'circle':
               if (s.points.length < 2) continue;
-              const center = s.points[0], edge = s.points[1];
-              const radius = Math.hypot((edge.x - center.x) * w, (edge.y - center.y) * h);
-              ctx.arc(center.x * w, center.y * h, radius, 0, 2 * Math.PI);
+              if (s.subtype === 'ellipse') {
+                const p1 = s.points[0], p2 = s.points[1];
+                const cx = (p1.x + p2.x) / 2;
+                const cy = (p1.y + p2.y) / 2;
+                const rx = Math.abs(p2.x - p1.x) * w / 2;
+                const ry = Math.abs(p2.y - p1.y) * h / 2;
+                ctx.ellipse(cx * w, cy * h, rx, ry, 0, 0, 2 * Math.PI);
+              } else {
+                const center = s.points[0], edge = s.points[1];
+                const radius = Math.hypot((edge.x - center.x) * w, (edge.y - center.y) * h);
+                ctx.arc(center.x * w, center.y * h, radius, 0, 2 * Math.PI);
+              }
               break;
           }
           ctx.stroke();
@@ -708,11 +727,24 @@ function hitTestStroke(px, py, stroke, W, H, thresh) {
     }
     case 'circle': {
       if (stroke.points.length < 2) return false;
-      const c = stroke.points[0], e = stroke.points[1];
-      const cx = c.x * W, cy = c.y * H;
-      const radius = Math.hypot(e.x*W - cx, e.y*H - cy);
-      const d = Math.hypot(px - cx, py - cy);
-      return Math.abs(d - radius) <= T;
+      if (stroke.subtype === 'ellipse') {
+        const p1 = stroke.points[0], p2 = stroke.points[1];
+        const cx = (p1.x * W + p2.x * W) / 2;
+        const cy = (p1.y * H + p2.y * H) / 2;
+        const rx = Math.abs(p2.x * W - p1.x * W) / 2;
+        const ry = Math.abs(p2.y * H - p1.y * H) / 2;
+        if (rx < 1 || ry < 1) return false;
+        const dx = px - cx, dy = py - cy;
+        const v = Math.sqrt((dx*dx)/(rx*rx) + (dy*dy)/(ry*ry));
+        const dist = Math.abs(v - 1) * Math.max(rx, ry);
+        return dist <= T;
+      } else {
+        const c = stroke.points[0], e = stroke.points[1];
+        const cx = c.x * W, cy = c.y * H;
+        const radius = Math.hypot(e.x*W - cx, e.y*H - cy);
+        const d = Math.hypot(px - cx, py - cy);
+        return Math.abs(d - radius) <= T;
+      }
     }
     default:
       return false;
@@ -757,7 +789,8 @@ function eraseAtPoint(event) {
               type: currentTool,
               color: getRgbaColor(), 
               widthNorm: (+widthInput.value) / rect.width, 
-              points: [{x,y}] 
+              points: [{x,y}], 
+              subtype: (currentTool === 'circle' ? circleMode : undefined)
           };
           
           if (currentTool !== 'pen') {
@@ -1258,9 +1291,18 @@ function eraseAtPoint(event) {
                     break;
                 case 'circle':
                     if (s.points.length < 2) continue;
-                    const center = s.points[0], edge = s.points[1];
-                    const radius = Math.hypot((edge.x - center.x) * W, (edge.y - center.y) * H);
-                    ctx.arc(center.x * W, center.y * H, radius, 0, 2 * Math.PI);
+                    if (s.subtype === 'ellipse') {
+                        const p1 = s.points[0], p2 = s.points[1];
+                        const cx = (p1.x + p2.x) / 2;
+                        const cy = (p1.y + p2.y) / 2;
+                        const rx = Math.abs(p2.x - p1.x) * W / 2;
+                        const ry = Math.abs(p2.y - p1.y) * H / 2;
+                        ctx.ellipse(cx * W, cy * H, rx, ry, 0, 0, 2 * Math.PI);
+                    } else {
+                        const center = s.points[0], edge = s.points[1];
+                        const radius = Math.hypot((edge.x - center.x) * W, (edge.y - center.y) * H);
+                        ctx.arc(center.x * W, center.y * H, radius, 0, 2 * Math.PI);
+                    }
                     break;
             }
             ctx.stroke();
