@@ -10,13 +10,22 @@
     html, body { height: 100%; margin: 0; overflow: hidden; }
     body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Noto Sans TC, Arial, "Helvetica Neue", Helvetica, sans-serif; }
 
-    /* Toolbar */
+    /* --- MODIFIED: Toolbar Styles for Two Rows --- */
     .toolbar {
-      position: fixed; inset: 0 0 auto 0; height: auto; min-height: var(--toolbar-h);
-      display: flex; flex-wrap: wrap; gap: .5rem;
-      align-items: center;
-      padding: .75rem 1rem; background: #111; color: #fff; z-index: 1001;
+      position: fixed; inset: 0 0 auto 0; height: var(--toolbar-h); /* Fixed height */
+      display: flex;
+      flex-direction: column; /* Stack rows vertically */
+      justify-content: center; /* Center rows vertically */
+      gap: .4rem; /* Gap between rows */
+      padding: 0 1rem; /* Adjusted padding */
+      background: #111; color: #fff; z-index: 1001;
       box-shadow: 0 2px 8px rgba(0,0,0,.25);
+    }
+    .toolbar-row {
+        display: flex;
+        align-items: center;
+        gap: .5rem; /* Gap between groups */
+        width: 100%;
     }
     .toolbar .group { display: flex; align-items: center; gap: .4rem; }
     .toolbar label { font-size: .9rem; opacity: .9; }
@@ -185,38 +194,43 @@
   <div id="sidebarToggler" title="收合/展開側欄">❯</div>
 
   <div class="toolbar" id="toolbar">
-    <div class="group">
-      <button id="uploadBtnProxy" class="secondary">匯入圖片</button>
-      <input id="fileInput" type="file" accept="image/jpeg,image/png,image/webp" multiple style="display:none;" />
-      <button id="fitView" class="secondary">回到左上</button>
-      <button id="reLayoutBtn" class="secondary">重排</button>
-      <button id="deleteItem" class="secondary">刪除</button>
+    <div class="toolbar-row">
+        <div class="group">
+            <button id="uploadBtnProxy" class="secondary">匯入圖片</button>
+            <input id="fileInput" type="file" accept="image/jpeg,image/png,image/webp" multiple style="display:none;" />
+            <button id="fitView" class="secondary">回到左上</button>
+            <button id="reLayoutBtn" class="secondary">重排</button>
+            <button id="deleteItem" class="secondary">刪除</button>
+        </div>
+        <div class="group">
+            <label id="langLabel">語言</label>
+            <select id="languageSelector">
+                <option value="zh-Hant">繁體中文</option>
+                <option value="ja">日本語</option>
+                <option value="en">English</option>
+            </select>
+        </div>
     </div>
-    <div class="group">
-      <label id="colorLabel">顏色</label>
-      <div class="swatch" data-color="#111111" style="background:#111"></div>
-      <div class="swatch" data-color="#e11d48" style="background:#e11d48"></div>
-      <div class="swatch" data-color="#2563eb" style="background:#2563eb"></div>
-      <div class="swatch" data-color="#16a34a" style="background:#16a34a"></div>
-      <button id="addTextBtn">新增文字</button>
-      <label id="fontSizeLabel">字體大小 <input id="fontSize" type="number" min="8" max="150" value="20"> px</label>
-    </div>
-    <div class="group">
-      <label id="widthLabel">粗細 <input id="width" type="range" min="1" max="30" step="1" value="5"> <span id="widthVal" class="badge"></span></label>
-      <button id="eraserBtn" class="secondary">橡皮擦</button>
-      <button id="undo" class="secondary">復原</button>
-      <button id="clear" class="secondary">清除筆跡</button>
-      <button id="exportJpg">匯出選取圖 JPG</button>
-    </div>
-    <div class="group">
-        <label id="langLabel">語言</label>
-        <select id="languageSelector">
-            <option value="zh-Hant">繁體中文</option>
-            <option value="ja">日本語</option>
-            <option value="en">English</option>
-        </select>
+    <div class="toolbar-row">
+        <div class="group">
+            <label id="colorLabel">顏色</label>
+            <div class="swatch" data-color="#111111" style="background:#111"></div>
+            <div class="swatch" data-color="#e11d48" style="background:#e11d48"></div>
+            <div class="swatch" data-color="#2563eb" style="background:#2563eb"></div>
+            <div class="swatch" data-color="#16a34a" style="background:#16a34a"></div>
+            <button id="addTextBtn">新增文字</button>
+            <label id="fontSizeLabel">字體大小 <input id="fontSize" type="number" min="8" max="150" value="20"> px</label>
+        </div>
+        <div class="group">
+            <label id="widthLabel">粗細 <input id="width" type="range" min="1" max="30" step="1" value="5"> <span id="widthVal" class="badge"></span></label>
+            <button id="eraserBtn" class="secondary">橡皮擦</button>
+            <button id="undo" class="secondary">復原</button>
+            <button id="clear" class="secondary">清除筆跡</button>
+            <button id="exportJpg">匯出選取圖 JPG</button>
+        </div>
     </div>
   </div>
+
 
   <div class="workspace" id="workspace">
     <div class="stage" id="stage"></div>
