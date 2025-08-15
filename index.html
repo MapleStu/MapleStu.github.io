@@ -179,7 +179,7 @@
 <body>
   <div id="fileListContainer">
     <div id="sidebarResizer"></div>
-    <h2><span>檔案列表</span></h2>
+    <h2><span id="fileListTitle">檔案列表</span></h2>
     <ul id="fileList"></ul>
   </div>
   <div id="sidebarToggler" title="收合/展開側欄">❯</div>
@@ -193,20 +193,28 @@
       <button id="deleteItem" class="secondary">刪除</button>
     </div>
     <div class="group">
-      <label>顏色</label>
+      <label id="colorLabel">顏色</label>
       <div class="swatch" data-color="#111111" style="background:#111"></div>
       <div class="swatch" data-color="#e11d48" style="background:#e11d48"></div>
       <div class="swatch" data-color="#2563eb" style="background:#2563eb"></div>
       <div class="swatch" data-color="#16a34a" style="background:#16a34a"></div>
       <button id="addTextBtn">新增文字</button>
-      <label>字體大小 <input id="fontSize" type="number" min="8" max="150" value="20"> px</label>
+      <label id="fontSizeLabel">字體大小 <input id="fontSize" type="number" min="8" max="150" value="20"> px</label>
     </div>
     <div class="group">
-      <label>粗細 <input id="width" type="range" min="1" max="30" step="1" value="5"> <span id="widthVal" class="badge"></span></label>
+      <label id="widthLabel">粗細 <input id="width" type="range" min="1" max="30" step="1" value="5"> <span id="widthVal" class="badge"></span></label>
       <button id="eraserBtn" class="secondary">橡皮擦</button>
       <button id="undo" class="secondary">復原</button>
       <button id="clear" class="secondary">清除筆跡</button>
       <button id="exportJpg">匯出選取圖 JPG</button>
+    </div>
+    <div class="group">
+        <label id="langLabel">語言</label>
+        <select id="languageSelector">
+            <option value="zh-Hant">繁體中文</option>
+            <option value="ja">日本語</option>
+            <option value="en">English</option>
+        </select>
     </div>
   </div>
 
@@ -217,6 +225,108 @@
   <div id="notice" class="notice">提示：匯入圖片後可直接畫線、移動、縮放。點「新增文字」可打字。點「橡皮擦」可進入擦除模式。按「匯出選取圖 JPG」可把底圖＋筆跡＋文字合成輸出。</div>
 
 <script>
+    // --- 多國語言相關設定 ---
+    const translations = {
+        'zh-Hant': {
+            'uploadBtnProxy': '匯入圖片',
+            'fitView': '回到左上',
+            'reLayoutBtn': '重排',
+            'deleteItem': '刪除',
+            'colorLabel': '顏色',
+            'addTextBtn': '新增文字',
+            'fontSizeLabel': '字體大小',
+            'widthLabel': '粗細',
+            'eraserBtn': '橡皮擦',
+            'undo': '復原',
+            'clear': '清除筆跡',
+            'exportJpg': '匯出選取圖 JPG',
+            'langLabel': '語言',
+            'fileListTitle': '檔案列表',
+            'sidebarTogglerTitle': '收合/展開側欄',
+            'noticeText': '提示：匯入圖片後可直接畫線、移動、縮放。點「新增文字」可打字。點「橡皮擦」可進入擦除模式。按「匯出選取圖 JPG」可把底圖＋筆跡＋文字合成輸出。',
+            'unnamed': '未命名',
+            'dragToMove': '拖曳此列移動',
+            'enterText': '輸入文字...',
+            'toggleVisTitle': '隱藏/顯示'
+        },
+        'ja': {
+            'uploadBtnProxy': '画像取り込み',
+            'fitView': '左上に戻る',
+            'reLayoutBtn': '再配置',
+            'deleteItem': '削除',
+            'colorLabel': '色',
+            'addTextBtn': 'テキスト追加',
+            'fontSizeLabel': 'フォントサイズ',
+            'widthLabel': '線の太さ',
+            'eraserBtn': '消しゴム',
+            'undo': '元に戻す',
+            'clear': '描画を消去',
+            'exportJpg': '選択画像をJPGで出力',
+            'langLabel': '言語',
+            'fileListTitle': 'ファイルリスト',
+            'sidebarTogglerTitle': 'サイドバーを閉じる/開く',
+            'noticeText': 'ヒント：画像をインポートした後、直接描画、移動、拡大縮小ができます。「テキスト追加」で文字入力、「消しゴム」で消しゴムモード、「選択画像をJPGで出力」で画像、描画、文字を合成してエクスポートします。',
+            'unnamed': '無題',
+            'dragToMove': 'このバーをドラッグして移動',
+            'enterText': '文字を入力...',
+            'toggleVisTitle': '表示/非表示'
+        },
+        'en': {
+            'uploadBtnProxy': 'Import Images',
+            'fitView': 'Fit View',
+            'reLayoutBtn': 'Re-layout',
+            'deleteItem': 'Delete',
+            'colorLabel': 'Color',
+            'addTextBtn': 'Add Text',
+            'fontSizeLabel': 'Font Size',
+            'widthLabel': 'Width',
+            'eraserBtn': 'Eraser',
+            'undo': 'Undo',
+            'clear': 'Clear Drawings',
+            'exportJpg': 'Export Selected JPG',
+            'langLabel': 'Languages',
+            'fileListTitle': 'File List',
+            'sidebarTogglerTitle': 'Collapse/Expand Sidebar',
+            'noticeText': 'Hint: After importing, you can draw, move, and resize. Click "Add Text" to type. Click "Eraser" for erase mode. Press "Export Selected JPG" to combine the image, drawings, and text.',
+            'unnamed': 'Unnamed',
+            'dragToMove': 'Drag this bar to move',
+            'enterText': 'Enter text...',
+            'toggleVisTitle': 'Hide/Show'
+        }
+    };
+
+    let currentLang = localStorage.getItem('caMochiLang') || 'zh-Hant';
+
+    function setLanguage(lang) {
+        if (!translations[lang]) return;
+        currentLang = lang;
+        localStorage.setItem('caMochiLang', lang);
+        document.documentElement.lang = lang.startsWith('zh') ? 'zh-Hant' : lang;
+
+        const t = translations[lang];
+        document.getElementById('uploadBtnProxy').textContent = t.uploadBtnProxy;
+        document.getElementById('fitView').textContent = t.fitView;
+        document.getElementById('reLayoutBtn').textContent = t.reLayoutBtn;
+        document.getElementById('deleteItem').textContent = t.deleteItem;
+        document.getElementById('colorLabel').textContent = t.colorLabel;
+        document.getElementById('addTextBtn').textContent = t.addTextBtn;
+        document.getElementById('fontSizeLabel').childNodes[0].nodeValue = t.fontSizeLabel + ' ';
+        document.getElementById('widthLabel').childNodes[0].nodeValue = t.widthLabel + ' ';
+        document.getElementById('eraserBtn').textContent = t.eraserBtn;
+        document.getElementById('undo').textContent = t.undo;
+        document.getElementById('clear').textContent = t.clear;
+        document.getElementById('exportJpg').textContent = t.exportJpg;
+        document.getElementById('langLabel').textContent = t.langLabel;
+        document.getElementById('fileListTitle').textContent = t.fileListTitle;
+        document.getElementById('sidebarToggler').title = t.sidebarTogglerTitle;
+        document.getElementById('notice').textContent = t.noticeText;
+
+        // 更新現有項目的動態文字
+        document.querySelectorAll('.move-bar .badge').forEach(el => el.textContent = t.dragToMove);
+        document.querySelectorAll('.toggle-vis').forEach(el => el.title = t.toggleVisTitle);
+    }
+    
+    // --- 原有程式碼開始 ---
     const stage = document.getElementById('stage');
     const workspace = document.getElementById('workspace');
     const fileInput = document.getElementById('fileInput');
@@ -238,6 +348,17 @@
     const fileListContainer = document.getElementById('fileListContainer');
     const sidebarResizer = document.getElementById('sidebarResizer');
     const sidebarToggler = document.getElementById('sidebarToggler');
+    const languageSelector = document.getElementById('languageSelector');
+
+    // --- 語言切換事件監聽 ---
+    languageSelector.addEventListener('change', (e) => {
+        setLanguage(e.target.value);
+    });
+    
+    // 初始化頁面語言
+    languageSelector.value = currentLang;
+    setLanguage(currentLang);
+
 
     // Sidebar Toggler Logic
     sidebarToggler.addEventListener('click', () => {
@@ -311,7 +432,7 @@
         }
     }
 
-    function makeItem(url, name='未命名', position = null) {
+    function makeItem(url, name=translations[currentLang].unnamed, position = null) {
       const item = document.createElement('div');
       item.className = 'item';
       item.id = `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -332,7 +453,8 @@
       canvas.className = 'draw-layer';
 
       const bar = document.createElement('div');
-      bar.className = 'move-bar'; bar.innerHTML = `<span class="badge">拖曳此列移動</span><span class="title" title="${name}">${name}</span>`;
+      bar.className = 'move-bar';
+      bar.innerHTML = `<span class="badge">${translations[currentLang].dragToMove}</span><span class="title" title="${name}">${name}</span>`;
 
       const resizer = document.createElement('div'); resizer.className = 'resizer';
 
@@ -451,7 +573,7 @@
         if (!selected) return;
         const item = selected; const itemW = item.clientWidth;
         const id = 'text-' + Date.now(); const fontSize = +fontSizeInput.value;
-        const textObj = { id: id, text: '輸入文字...', x: 20 / itemW, y: 50 / itemW, sizeNorm: fontSize / itemW, color: currentColor, };
+        const textObj = { id: id, text: translations[currentLang].enterText, x: 20 / itemW, y: 50 / itemW, sizeNorm: fontSize / itemW, color: currentColor, };
         item._texts.push(textObj);
         const textBox = document.createElement('div');
         textBox.id = id; textBox.className = 'text-box'; textBox.contentEditable = true; textBox.spellcheck = false;
@@ -630,11 +752,8 @@
                 }
             }
         }
-        // Optional: Add a notice if no slot was found
-        // alert('沒有找到合適的空位！');
     }
 
-    // MODIFIED: The "Re-layout" button now calls the new smart function
     reLayoutBtn.addEventListener('click', () => {
         if (!selected) return;
         findAndFillEmptySlot(selected);
@@ -657,7 +776,6 @@
                 const img = item.querySelector('img');
 
                 const placeAndContinue = () => {
-                    // Use the original layout function for initial import
                     positionItemInLayout(item); 
                     addToFileList(item, f.name);
                     item._redrawAll();
@@ -687,7 +805,7 @@
 
         const visButton = document.createElement('button');
         visButton.className = 'toggle-vis';
-        visButton.title = '隱藏/顯示';
+        visButton.title = translations[currentLang].toggleVisTitle;
         visButton.textContent = '👁️'; 
 
         li.appendChild(nameSpan);
@@ -858,9 +976,7 @@
       if (e.key === ']') { selected.style.width = (selected.clientWidth + step*2) + 'px'; selected._sizeToImage(); }
     });
 
-    // --- 新增：處理貼上圖片的功能 ---
     window.addEventListener('paste', async (e) => {
-        // 如果焦點在文字輸入框內，則不處理貼上圖片，維持正常的文字貼上功能
         if (document.activeElement && document.activeElement.matches('.text-box')) {
             return;
         }
@@ -868,7 +984,6 @@
         const items = (e.clipboardData || window.clipboardData).items;
         if (!items) return;
 
-        // 從剪貼簿中尋找圖片檔案
         let imageFile = null;
         for (let i = 0; i < items.length; i++) {
             if (items[i].type.indexOf('image') !== -1) {
@@ -877,15 +992,12 @@
             }
         }
         
-        // 如果沒有找到圖片檔案，則不進行任何操作
         if (!imageFile) {
             return;
         }
         
-        // 阻止瀏覽器的預設貼上行為 (例如直接顯示圖片)
         e.preventDefault();
 
-        // 接下來的邏輯與透過按鈕匯入圖片的邏輯幾乎相同
         const url = URL.createObjectURL(imageFile);
         const fileName = `pasted-image-${Date.now()}.png`;
 
@@ -895,22 +1007,17 @@
             layoutRowMaxHeight = 0;
         }
 
-        // 使用 Promise 以確保圖片載入完成後再進行排版
         await new Promise(resolve => {
-            // 建立一個新的圖片物件，但先放在畫面外
             const item = makeItem(url, fileName, { left: -9999, top: -9999 });
             const img = item.querySelector('img');
 
             const placeAndContinue = () => {
-                // 使用原有的排版函式將圖片放置到工作區
                 positionItemInLayout(item); 
-                // 將圖片資訊加入到右側的檔案列表
                 addToFileList(item, fileName);
                 item._redrawAll();
                 resolve();
             };
             
-            // 確保圖片已載入並取得尺寸後，再執行放置操作
             if (img.complete && img.naturalWidth > 0) {
                 placeAndContinue();
             } else {
@@ -922,4 +1029,3 @@
   </script>
 </body>
 </html>
-
