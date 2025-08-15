@@ -227,6 +227,7 @@
             <button id="undo" class="secondary">復原</button>
             <button id="clear" class="secondary">清除筆跡</button>
             <button id="exportJpg">匯出選取圖 JPG</button>
+            <button id="exportWorkspaceBtn">匯出工作區</button>
         </div>
     </div>
   </div>
@@ -254,6 +255,7 @@
             'undo': '復原',
             'clear': '清除筆跡',
             'exportJpg': '匯出選取圖 JPG',
+            'exportWorkspaceBtn': '匯出工作區',
             'langLabel': '語言',
             'fileListTitle': '檔案列表',
             'sidebarTogglerTitle': '收合/展開側欄',
@@ -276,6 +278,7 @@
             'undo': '元に戻す',
             'clear': '描画を消去',
             'exportJpg': '選択画像をJPGで出力',
+            'exportWorkspaceBtn': 'ワークスペースを出力',
             'langLabel': '言語',
             'fileListTitle': 'ファイルリスト',
             'sidebarTogglerTitle': 'サイドバーを閉じる/開く',
@@ -298,6 +301,7 @@
             'undo': 'Undo',
             'clear': 'Clear Drawings',
             'exportJpg': 'Export Selected JPG',
+            'exportWorkspaceBtn': 'Export Workspace',
             'langLabel': 'Languages',
             'fileListTitle': 'File List',
             'sidebarTogglerTitle': 'Collapse/Expand Sidebar',
@@ -330,6 +334,7 @@
         document.getElementById('undo').textContent = t.undo;
         document.getElementById('clear').textContent = t.clear;
         document.getElementById('exportJpg').textContent = t.exportJpg;
+        document.getElementById('exportWorkspaceBtn').textContent = t.exportWorkspaceBtn;
         document.getElementById('langLabel').textContent = t.langLabel;
         document.getElementById('fileListTitle').textContent = t.fileListTitle;
         document.getElementById('sidebarToggler').title = t.sidebarTogglerTitle;
@@ -350,6 +355,7 @@
     const undoBtn = document.getElementById('undo');
     const clearBtn = document.getElementById('clear');
     const exportBtn = document.getElementById('exportJpg');
+    const exportWorkspaceBtn = document.getElementById('exportWorkspaceBtn');
     const widthInput = document.getElementById('width');
     const widthVal = document.getElementById('widthVal');
     const eraserBtn = document.getElementById('eraserBtn');
@@ -921,43 +927,126 @@
         updateButtonsState(); 
     });
 
-    exportBtn.addEventListener('click', ()=>{
-      if (!selected) return; const img = selected.querySelector('img'); const d = selected._draw; if (!img || !d) return;
-      const W = img.naturalWidth || selected.clientWidth; const H = img.naturalHeight || img.clientHeight;
-      const off = document.createElement('canvas'); off.width=W; off.height=H; const ctx=off.getContext('2d');
-      ctx.drawImage(img, 0, 0, W, H);
-      
-      ctx.lineJoin = ctx.lineCap = 'round';
-      for (const s of d.strokes){
-        ctx.beginPath(); ctx.strokeStyle = s.color; ctx.lineWidth = s.widthNorm * W;
-        if (s.points.length===1){
-          const p = s.points[0]; ctx.moveTo(p.x*W, p.y*H); ctx.lineTo(p.x*W+0.01, p.y*H);
-        } else {
-          const pts=s.points; ctx.moveTo(pts[0].x*W, pts[0].y*H);
-          for (let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x*W, pts[i].y*H);
+    // --- NEW: Reusable function to render a single item to a canvas at high quality ---
+    async function renderItemToCanvas(item) {
+        if (!item) return null;
+        const img = item.querySelector('img');
+        const d = item._draw;
+        if (!img || !d) return null;
+
+        if (!img.complete || img.naturalWidth === 0) {
+            await new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = reject;
+            });
         }
-        ctx.stroke();
-      }
-      
-      if (selected._texts && selected._texts.length > 0) {
-        for (const textObj of selected._texts) {
-            const fontSize = textObj.sizeNorm * W;
-            ctx.font = `600 ${fontSize}px sans-serif`;
-            ctx.fillStyle = textObj.color;
-            ctx.textBaseline = 'top';
-            const lines = textObj.text.split('\n');
-            const x = textObj.x * W;
-            let y = textObj.y * W; 
-            for (const line of lines) {
-                ctx.fillText(line, x, y);
-                y += fontSize * 1.2;
+        
+        const W = img.naturalWidth;
+        const H = img.naturalHeight;
+        const off = document.createElement('canvas');
+        off.width = W;
+        off.height = H;
+        const ctx = off.getContext('2d');
+        
+        ctx.drawImage(img, 0, 0, W, H);
+        
+        ctx.lineJoin = ctx.lineCap = 'round';
+        for (const s of d.strokes) {
+            ctx.beginPath();
+            ctx.strokeStyle = s.color;
+            ctx.lineWidth = s.widthNorm * W;
+            if (s.points.length === 1) {
+                const p = s.points[0];
+                ctx.moveTo(p.x * W, p.y * H);
+                ctx.lineTo(p.x * W + 0.01, p.y * H);
+            } else {
+                const pts = s.points;
+                ctx.moveTo(pts[0].x * W, pts[0].y * H);
+                for (let i = 1; i < pts.length; i++) {
+                    ctx.lineTo(pts[i].x * W, pts[i].y * H);
+                }
+            }
+            ctx.stroke();
+        }
+        
+        if (item._texts && item._texts.length > 0) {
+            for (const textObj of item._texts) {
+                const fontSize = textObj.sizeNorm * W;
+                ctx.font = `600 ${fontSize}px sans-serif`;
+                ctx.fillStyle = textObj.color;
+                ctx.textBaseline = 'top';
+                const lines = textObj.text.split('\n');
+                const x = textObj.x * W;
+                let y = textObj.y * W;
+                for (const line of lines) {
+                    ctx.fillText(line, x, y);
+                    y += fontSize * 1.2;
+                }
             }
         }
-      }
-      
-      const url = off.toDataURL('image/jpeg', 0.95);
-      const a = document.createElement('a'); a.href = url; a.download = (img.alt || 'export') + '.jpg'; a.click();
+        return off;
+    }
+
+    // MODIFIED: 'Export Selected' now uses the reusable function
+    exportBtn.addEventListener('click', async () => {
+        if (!selected) return;
+        const canvas = await renderItemToCanvas(selected);
+        if (!canvas) return;
+        
+        const url = canvas.toDataURL('image/jpeg', 0.95);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = (selected.querySelector('img').alt || 'export') + '.jpg';
+        a.click();
     });
+
+    // --- NEW: 'Export Workspace' functionality ---
+    exportWorkspaceBtn.addEventListener('click', async () => {
+        const items = Array.from(document.querySelectorAll('.item:not(.is-hidden)'));
+        if (items.length === 0) return;
+
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        const PADDING = 20;
+
+        items.forEach(item => {
+            minX = Math.min(minX, item.offsetLeft);
+            minY = Math.min(minY, item.offsetTop);
+            maxX = Math.max(maxX, item.offsetLeft + item.offsetWidth);
+            maxY = Math.max(maxY, item.offsetTop + item.offsetHeight);
+        });
+
+        minX -= PADDING;
+        minY -= PADDING;
+        maxX += PADDING;
+        maxY += PADDING;
+        
+        const canvasWidth = maxX - minX;
+        const canvasHeight = maxY - minY;
+
+        const finalCanvas = document.createElement('canvas');
+        finalCanvas.width = canvasWidth;
+        finalCanvas.height = canvasHeight;
+        const ctx = finalCanvas.getContext('2d');
+        
+        ctx.fillStyle = '#f7fafc';
+        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+        for (const item of items) {
+            const renderedItemCanvas = await renderItemToCanvas(item);
+            if (renderedItemCanvas) {
+                const drawX = item.offsetLeft - minX;
+                const drawY = item.offsetTop - minY;
+                ctx.drawImage(renderedItemCanvas, drawX, drawY, item.clientWidth, item.clientHeight);
+            }
+        }
+        
+        const url = finalCanvas.toDataURL('image/jpeg', 0.9);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `workspace-${Date.now()}.jpg`;
+        a.click();
+    });
+
 
     window.addEventListener('keydown', (e)=>{
       if (e.target.matches('.text-box')) {
