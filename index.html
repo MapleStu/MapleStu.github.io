@@ -3,7 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CA-Mochi圖片筆記v9</title>
+  <title>CA-Mochi ImageNotes 10</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
   <style>
     :root { --toolbar-h: 90px; --sidebar-w: 240px; }
     * { box-sizing: border-box; }
@@ -196,8 +198,8 @@
   <div class="toolbar" id="toolbar">
     <div class="toolbar-row">
         <div class="group">
-            <button id="uploadBtnProxy" class="secondary">匯入圖片</button>
-            <input id="fileInput" type="file" accept="image/jpeg,image/png,image/webp" multiple style="display:none;" />
+            <button id="uploadBtnProxy" class="secondary">匯入圖片/PDF</button>
+            <input id="fileInput" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple style="display:none;" />
             <button id="fitView" class="secondary">回到左上</button>
             <button id="reLayoutBtn" class="secondary">重排</button>
             <button id="deleteItem" class="secondary">刪除</button>
@@ -237,13 +239,16 @@
     <div class="stage" id="stage"></div>
   </div>
 
-  <div id="notice" class="notice">提示：匯入圖片後可直接畫線、移動、縮放。點「新增文字」可打字。點「橡皮擦」可進入擦除模式。按「匯出選取圖 JPG」可把底圖＋筆跡＋文字合成輸出。</div>
+  <div id="notice" class="notice">提示：匯入圖片/PDF後可直接畫線、移動、縮放。點「新增文字」可打字。點「橡皮擦」可進入擦除模式。按「匯出選取圖 JPG」可把底圖＋筆跡＋文字合成輸出。</div>
 
 <script>
+    // --- 設定 PDF.js Worker 的路徑 ---
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
+
     // --- 多國語言相關設定 ---
     const translations = {
         'zh-Hant': {
-            'uploadBtnProxy': '匯入圖片',
+            'uploadBtnProxy': '匯入圖片/PDF',
             'fitView': '回到左上',
             'reLayoutBtn': '重排',
             'deleteItem': '刪除',
@@ -259,14 +264,15 @@
             'langLabel': '語言',
             'fileListTitle': '檔案列表',
             'sidebarTogglerTitle': '收合/展開側欄',
-            'noticeText': '提示：匯入圖片後可直接畫線、移動、縮放。點「新增文字」可打字。點「橡皮擦」可進入擦除模式。按「匯出選取圖 JPG」可把底圖＋筆跡＋文字合成輸出。',
+            'noticeText': '提示：匯入圖片或PDF後可直接畫線、移動、縮放。點「新增文字」可打字。點「橡皮擦」可進入擦除模式。按「匯出選取圖 JPG」可把底圖＋筆跡＋文字合成輸出。',
             'unnamed': '未命名',
             'dragToMove': '拖曳此列移動',
             'enterText': '輸入文字...',
-            'toggleVisTitle': '隱藏/顯示'
+            'toggleVisTitle': '隱藏/顯示',
+            'processingPdf': '處理中 PDF: '
         },
         'ja': {
-            'uploadBtnProxy': '画像取り込み',
+            'uploadBtnProxy': '画像/PDF取り込み',
             'fitView': '左上に戻る',
             'reLayoutBtn': '再配置',
             'deleteItem': '削除',
@@ -282,14 +288,15 @@
             'langLabel': '言語',
             'fileListTitle': 'ファイルリスト',
             'sidebarTogglerTitle': 'サイドバーを閉じる/開く',
-            'noticeText': 'ヒント：画像をインポートした後、直接描画、移動、拡大縮小ができます。「テキスト追加」で文字入力、「消しゴム」で消しゴムモード、「選択画像をJPGで出力」で画像、描画、文字を合成してエクスポートします。',
+            'noticeText': 'ヒント：画像やPDFをインポートした後、直接描画、移動、拡大縮小ができます。「テキスト追加」で文字入力、「消しゴム」で消しゴムモード、「選択画像をJPGで出力」で画像、描画、文字を合成してエクスポートします。',
             'unnamed': '無題',
             'dragToMove': 'このバーをドラッグして移動',
             'enterText': '文字を入力...',
-            'toggleVisTitle': '表示/非表示'
+            'toggleVisTitle': '表示/非表示',
+            'processingPdf': 'PDF処理中: '
         },
         'en': {
-            'uploadBtnProxy': 'Import Images',
+            'uploadBtnProxy': 'Import Images / PDF',
             'fitView': 'Fit View',
             'reLayoutBtn': 'Re-layout',
             'deleteItem': 'Delete',
@@ -305,11 +312,12 @@
             'langLabel': 'Languages',
             'fileListTitle': 'File List',
             'sidebarTogglerTitle': 'Collapse/Expand Sidebar',
-            'noticeText': 'Hint: After importing, you can draw, move, and resize. Click "Add Text" to type. Click "Eraser" for erase mode. Press "Export Selected JPG" to combine the image, drawings, and text.',
+            'noticeText': 'Hint: After importing an image or PDF, you can draw, move, and resize. Click "Add Text" to type. Click "Eraser" for erase mode. Press "Export Selected JPG" to combine the image, drawings, and text.',
             'unnamed': 'Unnamed',
             'dragToMove': 'Drag this bar to move',
             'enterText': 'Enter text...',
-            'toggleVisTitle': 'Hide/Show'
+            'toggleVisTitle': 'Hide/Show',
+            'processingPdf': 'Processing PDF: '
         }
     };
 
@@ -415,6 +423,17 @@
             setTimeout(() => { if(notice) notice.style.display = 'none'; }, 600);
         }
     }, 30000);
+
+    function showNotice(text, duration = 4000) {
+        if (!notice) return;
+        notice.textContent = text;
+        notice.style.display = 'block';
+        notice.classList.remove('hidden');
+        setTimeout(() => {
+            notice.classList.add('hidden');
+            setTimeout(() => { if(notice) notice.style.display = 'none'; }, 600);
+        }, duration);
+    }
 
     document.getElementById('uploadBtnProxy').addEventListener('click', () => fileInput.click());
 
@@ -779,6 +798,7 @@
         findAndFillEmptySlot(selected);
     });
 
+    // --- MODIFIED: fileInput event listener to handle images and PDFs ---
     fileInput.addEventListener('change', async (e) => {
         const files = Array.from(e.target.files || []);
         if (files.length === 0) return;
@@ -788,27 +808,80 @@
             layoutNextY = PADDING;
             layoutRowMaxHeight = 0;
         }
+        
+        const uploadBtn = document.getElementById('uploadBtnProxy');
+        const originalBtnText = uploadBtn.textContent;
+        uploadBtn.disabled = true;
 
         for (const f of files) {
-            const url = URL.createObjectURL(f);
-            await new Promise(resolve => {
-                const item = makeItem(url, f.name, { left: -9999, top: -9999 });
-                const img = item.querySelector('img');
+            if (f.type.startsWith('image/')) {
+                // --- Handle images (existing logic) ---
+                const url = URL.createObjectURL(f);
+                await new Promise(resolve => {
+                    const item = makeItem(url, f.name, { left: -9999, top: -9999 });
+                    const img = item.querySelector('img');
 
-                const placeAndContinue = () => {
-                    positionItemInLayout(item); 
-                    addToFileList(item, f.name);
-                    item._redrawAll();
-                    resolve();
-                };
+                    const placeAndContinue = () => {
+                        positionItemInLayout(item); 
+                        addToFileList(item, f.name);
+                        item._redrawAll();
+                        resolve();
+                    };
+                    
+                    if (img.complete && img.naturalWidth > 0) {
+                        placeAndContinue();
+                    } else {
+                        img.addEventListener('load', placeAndContinue, { once: true });
+                    }
+                });
+            } else if (f.type === 'application/pdf') {
+                // --- Handle PDFs (new logic) ---
+                const t = translations[currentLang];
+                showNotice(`${t.processingPdf}${f.name}`, 60000); // Show long notice
                 
-                if (img.complete && img.naturalWidth > 0) {
-                    placeAndContinue();
-                } else {
-                    img.addEventListener('load', placeAndContinue);
+                try {
+                    const pdfData = await f.arrayBuffer();
+                    const pdfDoc = await pdfjsLib.getDocument({ data: pdfData }).promise;
+                    
+                    for (let i = 1; i <= pdfDoc.numPages; i++) {
+                        const page = await pdfDoc.getPage(i);
+                        const scale = 1.5;
+                        const viewport = page.getViewport({ scale });
+                        
+                        const tempCanvas = document.createElement('canvas');
+                        const context = tempCanvas.getContext('2d');
+                        tempCanvas.height = viewport.height;
+                        tempCanvas.width = viewport.width;
+
+                        await page.render({ canvasContext: context, viewport: viewport }).promise;
+                        
+                        const url = tempCanvas.toDataURL('image/jpeg', 0.9);
+                        const pageName = `${f.name} (p. ${i})`;
+
+                        await new Promise(resolve => {
+                             const item = makeItem(url, pageName, { left: -9999, top: -9999 });
+                             const img = item.querySelector('img');
+                             const placeAndContinue = () => {
+                                 positionItemInLayout(item); 
+                                 addToFileList(item, pageName);
+                                 item._redrawAll();
+                                 resolve();
+                             };
+                             if (img.complete) {
+                                 placeAndContinue();
+                             } else {
+                                 img.addEventListener('load', placeAndContinue, { once: true });
+                             }
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error processing PDF:', error);
+                    showNotice(`Error processing PDF: ${f.name}`);
                 }
-            });
+            }
         }
+        uploadBtn.disabled = false;
+        uploadBtn.textContent = originalBtnText;
         fileInput.value = '';
     });
 
