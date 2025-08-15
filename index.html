@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CA-Mochi ImageNotes 10.3</title>
+  <title>CA-Mochi ImageNotes 10.4</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
   <style>
@@ -289,6 +289,8 @@
             'toolRect': '矩形',
             'toolCircle': '圓形',
             'opacityLabel': '不透明度',
+            'circleCenterMode': '圓形：以起點為圓心',
+            'circleEllipseMode': '圓形：拉出任意橢圓',
         },
         'ja': {
             'uploadBtnProxy': '画像/PDF取り込み',
@@ -320,6 +322,8 @@
             'toolRect': '長方形',
             'toolCircle': '円形',
             'opacityLabel': '不透明度',
+            'circleCenterMode': '円：始点を中心に',
+            'circleEllipseMode': '円：任意の楕円を描画',
         },
         'en': {
             'uploadBtnProxy': 'Import Images / PDF',
@@ -351,6 +355,8 @@
             'toolRect': 'Rectangle',
             'toolCircle': 'Circle',
             'opacityLabel': 'Opacity',
+            'circleCenterMode': 'Circle: Draw from center',
+            'circleEllipseMode': 'Circle: Drag to draw ellipse',
         }
     };
 
@@ -490,7 +496,8 @@ toolButtons.forEach(btn => btn.addEventListener('click', () => setActiveTool(btn
     circleBtn.addEventListener('click', () => {
         if (currentTool === 'circle' && !isErasing) {
             circleMode = (circleMode === 'center') ? 'ellipse' : 'center';
-            showNotice(circleMode === 'center' ? '圓形：以起點為圓心' : '圓形：拉出任意橢圓');
+            const t = translations[currentLang];
+            showNotice(circleMode === 'center' ? t.circleCenterMode : t.circleEllipseMode);
         }
     });
 
