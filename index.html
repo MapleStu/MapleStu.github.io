@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CA-Mochi ImageNotes 10.1</title>
+  <title>CA-Mochi ImageNotes 10.2</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
   <style>
@@ -40,6 +40,9 @@
       white-space: nowrap;
     }
     .toolbar button.secondary { background: #4a5568; }
+    /* NEW: tool buttons layout (可選，不加也行) */
+    .tool-buttons { display: inline-flex; gap: .4rem; }
+    .tool-btn { /* 繼承 .toolbar button 樣式即可，不額外指定 */ }
     .toolbar button.active { background: #f6e05e; color: #111; }
     .toolbar button:disabled { opacity: .5; cursor: not-allowed; }
 
@@ -224,12 +227,12 @@
             <div class="swatch" data-color="#16a34a" style="background:#16a34a"></div>
             <div class="swatch" data-color="#f6e05e" style="background:#f6e05e"></div>
             <label id="drawToolLabel">工具</label>
-            <select id="drawTool">
-                <option value="pen" id="toolPen">畫筆</option>
-                <option value="line" id="toolLine">直線</option>
-                <option value="rect" id="toolRect">方形</option>
-                <option value="circle" id="toolCircle">圓形</option>
-            </select>
+            <div id="toolButtons" class="tool-buttons">
+            <button class="tool-btn active" data-tool="pen" id="toolPen">畫筆</button>
+            <button class="tool-btn" data-tool="line" id="toolLine">直線</button>
+            <button class="tool-btn" data-tool="circle" id="toolCircle">圓形</button>
+            <button class="tool-btn" data-tool="rect" id="toolRect">矩形</button>
+            </div>
             <button id="addTextBtn">新增文字</button>
             <label id="fontSizeLabel">字體大小 <input id="fontSize" type="number" min="8" max="150" value="20"> px</label>
         </div>
@@ -283,7 +286,7 @@
             'drawToolLabel': '工具',
             'toolPen': '畫筆',
             'toolLine': '直線',
-            'toolRect': '方形',
+            'toolRect': '矩形',
             'toolCircle': '圓形',
             'opacityLabel': '不透明度',
         },
@@ -416,16 +419,23 @@
     const sidebarToggler = document.getElementById('sidebarToggler');
     const languageSelector = document.getElementById('languageSelector');
 
-    // --- NEW: Tool and Opacity controls ---
-    const drawToolSelect = document.getElementById('drawTool');
-    const opacityInput = document.getElementById('opacity');
-    const opacityVal = document.getElementById('opacityVal');
-    let currentTool = 'pen';
-    let currentOpacity = 1;
+// --- NEW: Tool and Opacity controls ---
+const opacityInput = document.getElementById('opacity');
+const opacityVal = document.getElementById('opacityVal');
+let currentTool = 'pen';
+let currentOpacity = 1;
 
-    drawToolSelect.addEventListener('change', (e) => {
-        currentTool = e.target.value;
-    });
+// NEW: 工具按鈕互斥
+const toolButtons = Array.from(document.querySelectorAll('.tool-btn'));
+function setActiveTool(tool) {
+  currentTool = tool;
+  // 選擇任何工具都關閉橡皮擦
+  if (isErasing) { isErasing = false; eraserBtn.classList.remove('active'); }
+  toolButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tool === tool));
+  updateCanvasCursor();
+}
+toolButtons.forEach(btn => btn.addEventListener('click', () => setActiveTool(btn.dataset.tool)));
+
 
     function updateOpacityLabel() {
         opacityVal.textContent = Math.round(opacityInput.value * 100) + '%';
@@ -514,13 +524,26 @@
     setActiveSwatch(swatches[0]);
     swatches.forEach(s=>s.addEventListener('click', ()=>setActiveSwatch(s)));
 
-    eraserBtn.addEventListener('click', ()=>{
-      isErasing = !isErasing;
-      eraserBtn.classList.toggle('active', isErasing);
-      if (isErasing) { swatches.forEach(s=>s.classList.remove('active')); }
-      else if (!swatches.some(s=>s.classList.contains('active'))) { setActiveSwatch(swatches.find(s=>s.dataset.color === currentColor) || swatches[0]); }
-      updateCanvasCursor();
-    });
+eraserBtn.addEventListener('click', ()=>{
+  isErasing = !isErasing;
+  eraserBtn.classList.toggle('active', isErasing);
+
+  if (isErasing) {
+    // 橡皮擦開啟：取消工具按鈕的 active、也把色塊外觀取消
+    toolButtons.forEach(btn => btn.classList.remove('active'));
+    swatches.forEach(s=>s.classList.remove('active'));
+  } else {
+    // 橡皮擦關閉：若沒有任何工具按鈕是 active，就回到目前工具或預設畫筆
+    if (!toolButtons.some(b => b.classList.contains('active'))) {
+      setActiveTool(currentTool || 'pen');
+    }
+    if (!swatches.some(s=>s.classList.contains('active'))) {
+      setActiveSwatch(swatches.find(s=>s.dataset.color === currentColor) || swatches[0]);
+    }
+  }
+  updateCanvasCursor();
+});
+
 
     function updateWidthLabel(){ widthVal.textContent = widthInput.value + ' px'; }
     updateWidthLabel();
@@ -640,29 +663,87 @@
 
       let drawing = false; let erasing = false; let curStroke = null; let rect = null;
 
-      function eraseAtPoint(event) {
-        const r = canvas.getBoundingClientRect();
-        const x = event.clientX - r.left;
-        const y = event.clientY - r.top;
-        let changed = false;
-        const strokesToKeep = [];
-        for (const stroke of draw.strokes) {
-          const strokeWidth = Math.max(10, stroke.widthNorm * r.width);
-          let hit = false;
-          // Simple proximity check for all stroke types
-          for (const p of stroke.points) {
-            const d = Math.hypot(x - (p.x * r.width), y - (p.y * r.height));
-            if (d < strokeWidth / 2) { hit = true; break; }
-          }
-          if (hit) { changed = true; } else { strokesToKeep.push(stroke); }
-        }
-        if (changed) {
-          saveUndoState(item);
-          draw.strokes = strokesToKeep;
-          redrawAll();
-          updateButtonsState();
-        }
+// NEW: 幾何幫手
+function pointSegDist(px, py, ax, ay, bx, by) {
+  const vx = bx - ax, vy = by - ay;
+  const wx = px - ax, wy = py - ay;
+  const c1 = vx*wx + vy*wy;
+  if (c1 <= 0) return Math.hypot(px - ax, py - ay);
+  const c2 = vx*vx + vy*vy;
+  if (c2 <= c1) return Math.hypot(px - bx, py - by);
+  const t = c1 / c2;
+  const projx = ax + t * vx, projy = ay + t * vy;
+  return Math.hypot(px - projx, py - projy);
+}
+
+function hitTestStroke(px, py, stroke, W, H, thresh) {
+  const T = thresh / 2; // 半徑
+  switch (stroke.type) {
+    case 'pen': {
+      const pts = stroke.points.map(p => ({ x: p.x * W, y: p.y * H }));
+      if (pts.length === 1) return Math.hypot(px - pts[0].x, py - pts[0].y) <= T;
+      for (let i = 0; i < pts.length - 1; i++) {
+        if (pointSegDist(px, py, pts[i].x, pts[i].y, pts[i+1].x, pts[i+1].y) <= T) return true;
       }
+      return false;
+    }
+    case 'line': {
+      if (stroke.points.length < 2) return false;
+      const a = stroke.points[0], b = stroke.points[1];
+      return pointSegDist(px, py, a.x*W, a.y*H, b.x*W, b.y*H) <= T;
+    }
+    case 'rect': {
+      if (stroke.points.length < 2) return false;
+      const p1 = stroke.points[0], p2 = stroke.points[1];
+      const left = Math.min(p1.x, p2.x) * W;
+      const right = Math.max(p1.x, p2.x) * W;
+      const top = Math.min(p1.y, p2.y) * H;
+      const bottom = Math.max(p1.y, p2.y) * H;
+      return (
+        pointSegDist(px, py, left, top, right, top)   <= T || // 上
+        pointSegDist(px, py, right, top, right, bottom) <= T || // 右
+        pointSegDist(px, py, right, bottom, left, bottom) <= T || // 下
+        pointSegDist(px, py, left, bottom, left, top)   <= T    // 左
+      );
+    }
+    case 'circle': {
+      if (stroke.points.length < 2) return false;
+      const c = stroke.points[0], e = stroke.points[1];
+      const cx = c.x * W, cy = c.y * H;
+      const radius = Math.hypot(e.x*W - cx, e.y*H - cy);
+      const d = Math.hypot(px - cx, py - cy);
+      return Math.abs(d - radius) <= T;
+    }
+    default:
+      return false;
+  }
+}
+
+function eraseAtPoint(event) {
+  const r = canvas.getBoundingClientRect();
+  const x = event.clientX - r.left;
+  const y = event.clientY - r.top;
+  let changed = false;
+  const strokesToKeep = [];
+
+  for (const stroke of draw.strokes) {
+    const thresh = Math.max(10, stroke.widthNorm * r.width);
+    const hit = hitTestStroke(x, y, stroke, r.width, r.height, thresh);
+    if (hit) {
+      changed = true;
+    } else {
+      strokesToKeep.push(stroke);
+    }
+  }
+
+  if (changed) {
+    saveUndoState(item);
+    draw.strokes = strokesToKeep;
+    redrawAll();
+    updateButtonsState();
+  }
+}
+
 
       canvas.addEventListener('pointerdown', (e)=>{
         selectItem(item); e.preventDefault(); canvas.setPointerCapture(e.pointerId); rect = canvas.getBoundingClientRect();
