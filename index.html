@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CA-Mochi ImageNotes 10.7</title>
+  <title>CA-Mochi ImageNotes 10.8</title>
   <link rel="icon" type="image/png" href="https://www.dropbox.com/scl/fi/na0ityoiz6hdcr5xio4jy/IMG_8884.PNG?rlkey=p0bk1j057mrskbr8ajnp7jecy&st=t4tc7zqk&dl=1">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
  
@@ -1016,52 +1016,58 @@ function eraseAtPoint(event) {
      * slot where the given item can fit without overlapping other items.
      * @param {HTMLElement} itemToMove The item to be repositioned.
      */
-    function findAndFillEmptySlot(itemToMove) {
+	function findAndFillEmptySlot(itemToMove) {
         const otherItems = Array.from(document.querySelectorAll('.item:not(.is-hidden)'))
                                 .filter(i => i.id !== itemToMove.id);
 
         const w = itemToMove.offsetWidth;
         const h = itemToMove.offsetHeight;
-        const step = 10; // Scan in 10px increments for performance
 
-        for (let y = PADDING; y < (stage.scrollHeight + h); y += step) {
-            for (let x = PADDING; x < (workspace.clientWidth - w); x += step) {
+        // 外層迴圈依然逐行掃描
+        for (let y = PADDING; y < (stage.scrollHeight + h); y++) {
+            
+            let x = PADDING;
+            // 內層使用 while 迴圈，讓 x 可以"跳躍"
+            while (x <= workspace.clientWidth - w) {
                 
-                const candidateRect = {
-                    left: x, top: y,
-                    right: x + w, bottom: y + h
-                };
-                
-                let hasCollision = false;
+                const candidateRect = { left: x, top: y, right: x + w, bottom: y + h };
+                let maxRightEdge = -1; // 用來記錄碰撞物體的最右側邊界
+
+                // 檢查所有其他物件，找出是否碰撞
                 for (const otherItem of otherItems) {
                     const otherRect = {
-                        left: otherItem.offsetLeft,
-                        top: otherItem.offsetTop,
+                        left: otherItem.offsetLeft, top: otherItem.offsetTop,
                         right: otherItem.offsetLeft + otherItem.offsetWidth,
                         bottom: otherItem.offsetTop + otherItem.offsetHeight
                     };
 
-                    // Check for overlap
-                    if (candidateRect.left < otherRect.right &&
-                        candidateRect.right > otherRect.left &&
-                        candidateRect.top < otherRect.bottom &&
-                        candidateRect.bottom > otherRect.top) {
-                        hasCollision = true;
-                        break; // Collision found, try next spot
+                    if (candidateRect.left < otherRect.right && candidateRect.right > otherRect.left &&
+                        candidateRect.top < otherRect.bottom && candidateRect.bottom > otherRect.top) {
+                        
+                        // 如果發生碰撞，更新最右側邊界
+                        if (otherRect.right > maxRightEdge) {
+                            maxRightEdge = otherRect.right;
+                        }
                     }
                 }
 
-                if (!hasCollision) {
-                    // Found a valid spot, move the item and exit
+                if (maxRightEdge === -1) {
+                    // 如果 maxRightEdge 還是初始值，代表沒有任何碰撞
+                    // 我們找到了這行最左邊的可用位置！
                     itemToMove.style.transition = 'left 0.4s ease-in-out, top 0.4s ease-in-out';
                     itemToMove.style.left = x + 'px';
                     itemToMove.style.top = y + 'px';
                     itemToMove.addEventListener('transitionend', () => {
                        itemToMove.style.transition = '';
                     }, { once: true });
-                    return; 
+                    return; // 任務完成
+                    
+                } else {
+                    // 如果發生了碰撞，直接將 x "跳躍" 到障礙物的最右邊
+                    x = maxRightEdge;
                 }
             }
+            // 如果 while 迴圈跑完都沒找到位置，外層 y 迴圈會自動 +1，掃描下一行
         }
     }
 
