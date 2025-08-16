@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CA-Mochi ImageNotes 10.6</title>
+  <title>CA-Mochi ImageNotes 10.7</title>
   <link rel="icon" type="image/png" href="https://www.dropbox.com/scl/fi/na0ityoiz6hdcr5xio4jy/IMG_8884.PNG?rlkey=p0bk1j057mrskbr8ajnp7jecy&st=t4tc7zqk&dl=1">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-
+ 
   <style>
     :root { --toolbar-h: 90px; --sidebar-w: 240px; }
     * { box-sizing: border-box; }
@@ -14,16 +14,19 @@
     body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Noto Sans TC, Arial, "Helvetica Neue", Helvetica, sans-serif; }
 
     /* --- MODIFIED: Toolbar Styles for Two Rows --- */
-    .toolbar {
-      position: fixed; inset: 0 0 auto 0; height: var(--toolbar-h); /* Fixed height */
-      display: flex;
-      flex-direction: column; /* Stack rows vertically */
-      justify-content: center; /* Center rows vertically */
-      gap: .4rem; /* Gap between rows */
-      padding: 0 1rem; /* Adjusted padding */
-      background: #111; color: #fff; z-index: 1001;
-      box-shadow: 0 2px 8px rgba(0,0,0,.25);
-    }
+.toolbar {
+  position: fixed; inset: 0 0 auto 0; height: var(--toolbar-h); /* Fixed height */
+  /* --- ↓↓↓ 增加 position: relative 是好習慣 --- */
+  position: relative; 
+  display: flex;
+  flex-direction: column; /* Stack rows vertically */
+  justify-content: center; /* Center rows vertically */
+  gap: .4rem; /* Gap between rows */
+  /* --- ↓↓↓ 修改這一行，加大右邊的 padding --- */
+  padding: 0 100px 0 1rem; /* T, R, B, L (Top, Right, Bottom, Left) */
+  background: #111; color: #fff; z-index: 1001;
+  box-shadow: 0 2px 8px rgba(0,0,0,.25);
+}
     .toolbar-row {
         display: flex;
         align-items: center;
@@ -40,6 +43,16 @@
       background: #2b6cb0; color: white; cursor: pointer; font-weight: 600;
       white-space: nowrap;
     }
+    #toolbar-icon {
+     position: absolute; /* 1. 啟用絕對定位，讓它脫離原本的排版 */
+     top: 50%; /* 2. 讓它的頂部對齊父層容器的垂直中心線 */
+     transform: translateY(-50%); /* 3. 再把它自己往上移身高的一半，達成完美垂直置中 */
+     right: 15px; /* 4. 定位在離右邊邊界 15px 的地方 */
+
+     height: 70px; /* 5. 設定高度，佔滿大部分的工具列高度 (90px) */
+     width: auto; /* 6. 讓寬度自動縮放以保持圖片比例 */
+     border-radius: 8px; /* 7. 設定圓角，使其更好看 */
+     }
     .toolbar button.secondary { background: #4a5568; }
     /* NEW: tool buttons layout (可選，不加也行) */
     .tool-buttons { display: inline-flex; gap: .4rem; }
@@ -200,6 +213,7 @@
   <div id="sidebarToggler" title="收合/展開側欄">❯</div>
 
   <div class="toolbar" id="toolbar">
+    <img src="https://www.dropbox.com/scl/fi/na0ityoiz6hdcr5xio4jy/IMG_8884.PNG?rlkey=p0bk1j057mrskbr8ajnp7jecy&st=t4tc7zqk&dl=1" alt="Toolbar Icon" id="toolbar-icon">
     <div class="toolbar-row">
         <div class="group">
             <button id="uploadBtnProxy" class="secondary">匯入圖片/PDF</button>
@@ -1495,5 +1509,3 @@ function eraseAtPoint(event) {
   </script>
 </body>
 </html>
-
-
