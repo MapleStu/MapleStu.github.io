@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CA-Mochi ImageNotes 10.4</title>
+  <title>CA-Mochi ImageNotes 10.5</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
   <style>
@@ -740,15 +740,31 @@ function hitTestStroke(px, py, stroke, W, H, thresh) {
         const cy = (p1.y * H + p2.y * H) / 2;
         const rx = Math.abs(p2.x * W - p1.x * W) / 2;
         const ry = Math.abs(p2.y * H - p1.y * H) / 2;
-        if (rx < 1 || ry < 1) return false;
+
+        // --- 修正開始 ---
+        // 如果橢圓太扁或太窄，將其視為線段處理
+        const effectiveStrokeWidth = T / 2;
+        if (ry < effectiveStrokeWidth) { // 當作水平線
+            const left = cx - rx, right = cx + rx;
+            return pointSegDist(px, py, left, cy, right, cy) <= T;
+        }
+        if (rx < effectiveStrokeWidth) { // 當作垂直線
+            const top = cy - ry, bottom = cy + ry;
+            return pointSegDist(px, py, cx, top, cx, bottom) <= T;
+        }
+        // --- 修正結束 ---
+
+        // 對於正常的橢圓，使用原始的數學公式
         const dx = px - cx, dy = py - cy;
-        const v = Math.sqrt((dx*dx)/(rx*rx) + (dy*dy)/(ry*ry));
+        // 加上對除以零的保護
+        if (rx === 0 || ry === 0) return false;
+        const v = Math.sqrt((dx * dx) / (rx * rx) + (dy * dy) / (ry * ry));
         const dist = Math.abs(v - 1) * Math.max(rx, ry);
         return dist <= T;
-      } else {
+      } else { // 圓形的邏輯不變
         const c = stroke.points[0], e = stroke.points[1];
         const cx = c.x * W, cy = c.y * H;
-        const radius = Math.hypot(e.x*W - cx, e.y*H - cy);
+        const radius = Math.hypot(e.x * W - cx, e.y * H - cy);
         const d = Math.hypot(px - cx, py - cy);
         return Math.abs(d - radius) <= T;
       }
