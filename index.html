@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CA-Mochi ImageNotes 11.1</title>
+  <title>CA-Mochi ImageNotes 11.2</title>
   <link rel="icon" type="image/png" href="https://www.dropbox.com/scl/fi/na0ityoiz6hdcr5xio4jy/IMG_8884.PNG?rlkey=p0bk1j057mrskbr8ajnp7jecy&st=t4tc7zqk&dl=1">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
  
@@ -61,7 +61,7 @@
     .toolbar button:disabled { opacity: .5; cursor: not-allowed; }
     /* NEW: Styles for transform controls */
     #transform-controls.disabled { opacity: .5; pointer-events: none; }
-    #transform-controls input[type="number"] { width: 4.5rem; }
+    #transform-controls input[type="number"] { width: 3.8rem; }
 
 
     /* Color swatches */
@@ -256,6 +256,14 @@
             <input type="number" id="canvasYInput">
         </div>
         <div class="group">
+            <label id="importSizeLabel">匯入尺寸</label>
+            <select id="importSizeAxis">
+                <option value="width" id="importSizeAxisWidth">寬度</option>
+                <option value="height" id="importSizeAxisHeight">高度</option>
+            </select>
+            <input type="number" id="importSizeInput" min="50" value="560" style="width: 3.8rem;">
+        </div>
+        <div class="group">
             <label id="langLabel">語言</label>
             <select id="languageSelector">
                 <option value="zh-Hant">繁體中文</option>
@@ -338,6 +346,9 @@
             'circleEllipseMode': '圓形：拉出任意橢圓',
             'canvasSizeLabel': '尺寸',
             'canvasPosLabel': '座標',
+            'importSizeLabel': '匯入尺寸',
+            'importSizeAxisWidth': '寬度',
+            'importSizeAxisHeight': '高度',
         },
         'ja': {
             'uploadBtnProxy': '画像/PDF取り込み',
@@ -372,10 +383,13 @@
             'circleEllipseMode': '円：任意の楕円を描画',
             'canvasSizeLabel': 'サイズ',
             'canvasPosLabel': '座標',
+            'importSizeLabel': '取り込みサイズ',
+            'importSizeAxisWidth': '幅',
+            'importSizeAxisHeight': '高さ',
         },
         'en': {
             'uploadBtnProxy': 'Import Images / PDF',
-            'fitView': 'Fit View',
+            'fitView': 'Top',
             'reLayoutBtn': 'Re-layout',
             'deleteItem': 'Delete',
             'colorLabel': 'Color',
@@ -406,6 +420,9 @@
             'circleEllipseMode': 'Circle: Drag to draw ellipse',
             'canvasSizeLabel': 'Size',
             'canvasPosLabel': 'Position',
+            'importSizeLabel': 'Import Size',
+            'importSizeAxisWidth': 'Width',
+            'importSizeAxisHeight': 'Height',
         }
     };
 
@@ -445,6 +462,9 @@
         document.getElementById('opacityLabel').childNodes[0].nodeValue = t.opacityLabel + ' ';
         document.getElementById('canvasSizeLabel').textContent = t.canvasSizeLabel;
         document.getElementById('canvasPosLabel').textContent = t.canvasPosLabel;
+        document.getElementById('importSizeLabel').textContent = t.importSizeLabel;
+        document.getElementById('importSizeAxisWidth').textContent = t.importSizeAxisWidth;
+        document.getElementById('importSizeAxisHeight').textContent = t.importSizeAxisHeight;
 
         // 更新現有項目的動態文字
         document.querySelectorAll('.move-bar .badge').forEach(el => el.textContent = t.dragToMove);
@@ -909,7 +929,7 @@
       item.addEventListener('pointerdown', (e)=>{ if (e.target.closest('.move-bar') || e.target.closest('.resizer')) return; selectItem(item); });
       
       img.addEventListener('load', ()=>{
-        const natW = img.naturalWidth; if (natW) item.style.width = Math.min(560, natW) + 'px';
+        // Sizing logic is now handled by the `placeAndContinue` function in the import handlers
         requestAnimationFrame(()=> {
             sizeToImage(false);
             if (selected === item) {
@@ -1232,6 +1252,26 @@
                     const img = item.querySelector('img');
 
                     const placeAndContinue = () => {
+                        const natW = img.naturalWidth;
+                        const natH = img.naturalHeight;
+                        if (natW > 0) {
+                            const aspectRatio = natW / natH;
+                            const sizeInput = document.getElementById('importSizeInput');
+                            const axisSelect = document.getElementById('importSizeAxis');
+                            const targetSize = parseInt(sizeInput.value, 10);
+                            const axis = axisSelect.value;
+
+                            if (!isNaN(targetSize) && targetSize >= 50) {
+                                if (axis === 'width') {
+                                    item.style.width = targetSize + 'px';
+                                } else { // axis === 'height'
+                                    item.style.width = (targetSize * aspectRatio) + 'px';
+                                }
+                            } else {
+                                item.style.width = Math.min(560, natW) + 'px';
+                            }
+                        }
+
                         positionItemInLayout(item); 
                         addToFileList(item, f.name);
                         item._redrawAll();
@@ -1272,6 +1312,25 @@
                              const item = makeItem(url, pageName, { left: -9999, top: -9999 });
                              const img = item.querySelector('img');
                              const placeAndContinue = () => {
+                                 const natW = img.naturalWidth;
+                                 const natH = img.naturalHeight;
+                                 if (natW > 0) {
+                                     const aspectRatio = natW / natH;
+                                     const sizeInput = document.getElementById('importSizeInput');
+                                     const axisSelect = document.getElementById('importSizeAxis');
+                                     const targetSize = parseInt(sizeInput.value, 10);
+                                     const axis = axisSelect.value;
+
+                                     if (!isNaN(targetSize) && targetSize >= 50) {
+                                         if (axis === 'width') {
+                                             item.style.width = targetSize + 'px';
+                                         } else { // axis === 'height'
+                                             item.style.width = (targetSize * aspectRatio) + 'px';
+                                         }
+                                     } else {
+                                         item.style.width = Math.min(560, natW) + 'px';
+                                     }
+                                 }
                                  positionItemInLayout(item); 
                                  addToFileList(item, pageName);
                                  item._redrawAll();
@@ -1632,6 +1691,26 @@
             const img = item.querySelector('img');
 
             const placeAndContinue = () => {
+                const natW = img.naturalWidth;
+                const natH = img.naturalHeight;
+                if (natW > 0) {
+                    const aspectRatio = natW / natH;
+                    const sizeInput = document.getElementById('importSizeInput');
+                    const axisSelect = document.getElementById('importSizeAxis');
+                    const targetSize = parseInt(sizeInput.value, 10);
+                    const axis = axisSelect.value;
+
+                    if (!isNaN(targetSize) && targetSize >= 50) {
+                        if (axis === 'width') {
+                            item.style.width = targetSize + 'px';
+                        } else { // axis === 'height'
+                            item.style.width = (targetSize * aspectRatio) + 'px';
+                        }
+                    } else {
+                        item.style.width = Math.min(560, natW) + 'px';
+                    }
+                }
+                
                 positionItemInLayout(item); 
                 addToFileList(item, fileName);
                 item._redrawAll();
