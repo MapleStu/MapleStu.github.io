@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CA-Mochi ImageNotes 11</title>
+  <title>CA-Mochi ImageNotes 11.1</title>
   <link rel="icon" type="image/png" href="https://www.dropbox.com/scl/fi/na0ityoiz6hdcr5xio4jy/IMG_8884.PNG?rlkey=p0bk1j057mrskbr8ajnp7jecy&st=t4tc7zqk&dl=1">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
  
@@ -37,7 +37,7 @@
     .toolbar label { font-size: .9rem; opacity: .9; }
     .toolbar input[type="number"] { width: 5rem; padding: .3rem .4rem; }
     #fontSize { width: 3.5rem; }
-    .toolbar input[type="range"] { width: 8rem; }
+    .toolbar input[type="range"] { width: 5rem; }
     .toolbar button, .toolbar select {
       padding: .45rem .7rem; border-radius: .55rem; border: 0;
       background: #2b6cb0; color: white; cursor: pointer; font-weight: 600;
@@ -206,6 +206,23 @@
     #fileListContainer.collapsed + #sidebarToggler { right: 0; }
     #fileListContainer.collapsed ~ .notice { right: 12px; }
 
+	/* --- NEW: Language-specific Font Size Adjustments --- */
+	:lang(ja) .toolbar button,
+	:lang(ja) .toolbar label,
+	:lang(ja) .toolbar select {
+		font-size: 0.7rem; /* 將日語的工具列字體縮小 */
+	}
+
+	:lang(en) .toolbar button,
+	:lang(en) .toolbar label,
+	:lang(en) .toolbar select {
+		font-size: 0.7rem; /* 將英語的工具列字體縮小 */
+	}
+
+	:lang(ja) #fontSizeLabel,
+	:lang(en) #fontSizeLabel {
+		white-space: nowrap; /* 防止 "字體大小" 這類的標籤換行 */
+	}
   </style>
 </head>
 <body>
@@ -267,8 +284,8 @@
             <label id="fontSizeLabel">字體大小 <input id="fontSize" type="number" min="8" max="150" value="20"> px</label>
         </div>
         <div class="group">
-            <label id="widthLabel">粗細 <input id="width" type="range" min="1" max="50" step="1" value="5"> <span id="widthVal" class="badge"></span></label>
-            <label id="opacityLabel">不透明度 <input id="opacity" type="range" min="0.1" max="1" step="0.05" value="1"> <span id="opacityVal" class="badge"></span></label>
+            <label id="widthLabel">粗細 <input id="width" type="range" min="1" max="30" step="1" value="5"> <span id="widthVal" class="badge"></span></label>
+            <label id="opacityLabel">不透明度 <input id="opacity" type="range" min="0" max="1" step="0.05" value="1"> <span id="opacityVal" class="badge"></span></label>
             <button id="undo" class="secondary">復原</button>
             <button id="clear" class="secondary">清除筆跡</button>
         </div>
