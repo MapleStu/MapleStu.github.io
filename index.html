@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CA-Mochi ImageNotes 10.8</title>
+  <title>CA-Mochi ImageNotes 11</title>
   <link rel="icon" type="image/png" href="https://www.dropbox.com/scl/fi/na0ityoiz6hdcr5xio4jy/IMG_8884.PNG?rlkey=p0bk1j057mrskbr8ajnp7jecy&st=t4tc7zqk&dl=1">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
  
@@ -14,19 +14,19 @@
     body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Noto Sans TC, Arial, "Helvetica Neue", Helvetica, sans-serif; }
 
     /* --- MODIFIED: Toolbar Styles for Two Rows --- */
-.toolbar {
-  position: fixed; inset: 0 0 auto 0; height: var(--toolbar-h); /* Fixed height */
-  /* --- ↓↓↓ 增加 position: relative 是好習慣 --- */
-  position: relative; 
-  display: flex;
-  flex-direction: column; /* Stack rows vertically */
-  justify-content: center; /* Center rows vertically */
-  gap: .4rem; /* Gap between rows */
-  /* --- ↓↓↓ 修改這一行，加大右邊的 padding --- */
-  padding: 0 100px 0 1rem; /* T, R, B, L (Top, Right, Bottom, Left) */
-  background: #111; color: #fff; z-index: 1001;
-  box-shadow: 0 2px 8px rgba(0,0,0,.25);
-}
+    .toolbar {
+      position: fixed; inset: 0 0 auto 0; height: var(--toolbar-h); /* Fixed height */
+      /* --- ↓↓↓ 增加 position: relative 是好習慣 --- */
+      position: relative; 
+      display: flex;
+      flex-direction: column; /* Stack rows vertically */
+      justify-content: center; /* Center rows vertically */
+      gap: .4rem; /* Gap between rows */
+      /* --- ↓↓↓ 修改這一行，加大右邊的 padding --- */
+      padding: 0 100px 0 1rem; /* T, R, B, L (Top, Right, Bottom, Left) */
+      background: #111; color: #fff; z-index: 1001;
+      box-shadow: 0 2px 8px rgba(0,0,0,.25);
+    }
     .toolbar-row {
         display: flex;
         align-items: center;
@@ -59,6 +59,10 @@
     .tool-btn { /* 繼承 .toolbar button 樣式即可，不額外指定 */ }
     .toolbar button.active { background: #f6e05e; color: #111; }
     .toolbar button:disabled { opacity: .5; cursor: not-allowed; }
+    /* NEW: Styles for transform controls */
+    #transform-controls.disabled { opacity: .5; pointer-events: none; }
+    #transform-controls input[type="number"] { width: 4.5rem; }
+
 
     /* Color swatches */
     .swatch { width: 26px; height: 26px; border-radius: .5rem; border: 2px solid rgba(255,255,255,.8); cursor: pointer; outline: 2px solid transparent; }
@@ -224,6 +228,16 @@
             <button id="exportJpg">匯出選取圖 JPG</button>
             <button id="exportWorkspaceBtn">匯出工作區</button>
         </div>
+        <div class="group" id="transform-controls">
+            <label id="canvasSizeLabel">尺寸</label>
+            <input type="number" id="canvasWidthInput" min="10">
+            <span style="opacity: .8;">x</span>
+            <input type="number" id="canvasHeightInput" min="10">
+            <label id="canvasPosLabel">座標</label>
+            <input type="number" id="canvasXInput">
+            <span style="opacity: .8;">,</span>
+            <input type="number" id="canvasYInput">
+        </div>
         <div class="group">
             <label id="langLabel">語言</label>
             <select id="languageSelector">
@@ -297,7 +311,6 @@
             'enterText': '輸入文字...',
             'toggleVisTitle': '隱藏/顯示',
             'processingPdf': '處理中 PDF: ',
-            // NEW TRANSLATIONS
             'drawToolLabel': '工具',
             'toolPen': '畫筆',
             'toolLine': '直線',
@@ -306,6 +319,8 @@
             'opacityLabel': '不透明度',
             'circleCenterMode': '圓形：以起點為圓心',
             'circleEllipseMode': '圓形：拉出任意橢圓',
+            'canvasSizeLabel': '尺寸',
+            'canvasPosLabel': '座標',
         },
         'ja': {
             'uploadBtnProxy': '画像/PDF取り込み',
@@ -330,7 +345,6 @@
             'enterText': '文字を入力...',
             'toggleVisTitle': '表示/非表示',
             'processingPdf': 'PDF処理中: ',
-            // NEW TRANSLATIONS
             'drawToolLabel': 'ツール',
             'toolPen': 'ペン',
             'toolLine': '直線',
@@ -339,6 +353,8 @@
             'opacityLabel': '不透明度',
             'circleCenterMode': '円：始点を中心に',
             'circleEllipseMode': '円：任意の楕円を描画',
+            'canvasSizeLabel': 'サイズ',
+            'canvasPosLabel': '座標',
         },
         'en': {
             'uploadBtnProxy': 'Import Images / PDF',
@@ -363,7 +379,6 @@
             'enterText': 'Enter text...',
             'toggleVisTitle': 'Hide/Show',
             'processingPdf': 'Processing PDF: ',
-            // NEW TRANSLATIONS
             'drawToolLabel': 'Tool',
             'toolPen': 'Pen',
             'toolLine': 'Line',
@@ -372,6 +387,8 @@
             'opacityLabel': 'Opacity',
             'circleCenterMode': 'Circle: Draw from center',
             'circleEllipseMode': 'Circle: Drag to draw ellipse',
+            'canvasSizeLabel': 'Size',
+            'canvasPosLabel': 'Position',
         }
     };
 
@@ -409,6 +426,8 @@
         document.getElementById('toolRect').textContent = t.toolRect;
         document.getElementById('toolCircle').textContent = t.toolCircle;
         document.getElementById('opacityLabel').childNodes[0].nodeValue = t.opacityLabel + ' ';
+        document.getElementById('canvasSizeLabel').textContent = t.canvasSizeLabel;
+        document.getElementById('canvasPosLabel').textContent = t.canvasPosLabel;
 
         // 更新現有項目的動態文字
         document.querySelectorAll('.move-bar .badge').forEach(el => el.textContent = t.dragToMove);
@@ -440,23 +459,30 @@
     const sidebarToggler = document.getElementById('sidebarToggler');
     const languageSelector = document.getElementById('languageSelector');
 
-// --- NEW: Tool and Opacity controls ---
-const opacityInput = document.getElementById('opacity');
-const opacityVal = document.getElementById('opacityVal');
-let currentTool = 'pen';
-let currentOpacity = 1;
-let circleMode = 'center'; // 'center' or 'ellipse'
+    // --- NEW: Transform Controls ---
+    const transformControls = document.getElementById('transform-controls');
+    const canvasWidthInput = document.getElementById('canvasWidthInput');
+    const canvasHeightInput = document.getElementById('canvasHeightInput');
+    const canvasXInput = document.getElementById('canvasXInput');
+    const canvasYInput = document.getElementById('canvasYInput');
 
-// NEW: 工具按鈕互斥
-const toolButtons = Array.from(document.querySelectorAll('.tool-btn'));
-function setActiveTool(tool) {
-  currentTool = tool;
-  // 選擇任何工具都關閉橡皮擦
-  if (isErasing) { isErasing = false; eraserBtn.classList.remove('active'); }
-  toolButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tool === tool));
-  updateCanvasCursor();
-}
-toolButtons.forEach(btn => btn.addEventListener('click', () => setActiveTool(btn.dataset.tool)));
+    // --- NEW: Tool and Opacity controls ---
+    const opacityInput = document.getElementById('opacity');
+    const opacityVal = document.getElementById('opacityVal');
+    let currentTool = 'pen';
+    let currentOpacity = 1;
+    let circleMode = 'center'; // 'center' or 'ellipse'
+
+    // NEW: 工具按鈕互斥
+    const toolButtons = Array.from(document.querySelectorAll('.tool-btn'));
+    function setActiveTool(tool) {
+      currentTool = tool;
+      // 選擇任何工具都關閉橡皮擦
+      if (isErasing) { isErasing = false; eraserBtn.classList.remove('active'); }
+      toolButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tool === tool));
+      updateCanvasCursor();
+    }
+    toolButtons.forEach(btn => btn.addEventListener('click', () => setActiveTool(btn.dataset.tool)));
 
 
     function updateOpacityLabel() {
@@ -556,25 +582,25 @@ toolButtons.forEach(btn => btn.addEventListener('click', () => setActiveTool(btn
     setActiveSwatch(swatches[0]);
     swatches.forEach(s=>s.addEventListener('click', ()=>setActiveSwatch(s)));
 
-eraserBtn.addEventListener('click', ()=>{
-  isErasing = !isErasing;
-  eraserBtn.classList.toggle('active', isErasing);
+    eraserBtn.addEventListener('click', ()=>{
+      isErasing = !isErasing;
+      eraserBtn.classList.toggle('active', isErasing);
 
-  if (isErasing) {
-    // 橡皮擦開啟：取消工具按鈕的 active、也把色塊外觀取消
-    toolButtons.forEach(btn => btn.classList.remove('active'));
-    swatches.forEach(s=>s.classList.remove('active'));
-  } else {
-    // 橡皮擦關閉：若沒有任何工具按鈕是 active，就回到目前工具或預設畫筆
-    if (!toolButtons.some(b => b.classList.contains('active'))) {
-      setActiveTool(currentTool || 'pen');
-    }
-    if (!swatches.some(s=>s.classList.contains('active'))) {
-      setActiveSwatch(swatches.find(s=>s.dataset.color === currentColor) || swatches[0]);
-    }
-  }
-  updateCanvasCursor();
-});
+      if (isErasing) {
+        // 橡皮擦開啟：取消工具按鈕的 active、也把色塊外觀取消
+        toolButtons.forEach(btn => btn.classList.remove('active'));
+        swatches.forEach(s=>s.classList.remove('active'));
+      } else {
+        // 橡皮擦關閉：若沒有任何工具按鈕是 active，就回到目前工具或預設畫筆
+        if (!toolButtons.some(b => b.classList.contains('active'))) {
+          setActiveTool(currentTool || 'pen');
+        }
+        if (!swatches.some(s=>s.classList.contains('active'))) {
+          setActiveSwatch(swatches.find(s=>s.dataset.color === currentColor) || swatches[0]);
+        }
+      }
+      updateCanvasCursor();
+    });
 
 
     function updateWidthLabel(){ widthVal.textContent = widthInput.value + ' px'; }
@@ -639,6 +665,7 @@ eraserBtn.addEventListener('click', ()=>{
         draw.ctx.setTransform(dpr,0,0,dpr,0,0);
         if (redraw) redrawAll();
         repositionTexts();
+        updateTransformInputs(item);
       }
       
       function repositionTexts() {
@@ -704,115 +731,115 @@ eraserBtn.addEventListener('click', ()=>{
 
       let drawing = false; let erasing = false; let curStroke = null; let rect = null;
 
-// NEW: 幾何幫手
-function pointSegDist(px, py, ax, ay, bx, by) {
-  const vx = bx - ax, vy = by - ay;
-  const wx = px - ax, wy = py - ay;
-  const c1 = vx*wx + vy*wy;
-  if (c1 <= 0) return Math.hypot(px - ax, py - ay);
-  const c2 = vx*vx + vy*vy;
-  if (c2 <= c1) return Math.hypot(px - bx, py - by);
-  const t = c1 / c2;
-  const projx = ax + t * vx, projy = ay + t * vy;
-  return Math.hypot(px - projx, py - projy);
-}
+    // NEW: 幾何幫手
+    function pointSegDist(px, py, ax, ay, bx, by) {
+      const vx = bx - ax, vy = by - ay;
+      const wx = px - ax, wy = py - ay;
+      const c1 = vx*wx + vy*wy;
+      if (c1 <= 0) return Math.hypot(px - ax, py - ay);
+      const c2 = vx*vx + vy*vy;
+      if (c2 <= c1) return Math.hypot(px - bx, py - by);
+      const t = c1 / c2;
+      const projx = ax + t * vx, projy = ay + t * vy;
+      return Math.hypot(px - projx, py - projy);
+    }
 
-function hitTestStroke(px, py, stroke, W, H, thresh) {
-  const T = thresh / 2; // 半徑
-  switch (stroke.type) {
-    case 'pen': {
-      const pts = stroke.points.map(p => ({ x: p.x * W, y: p.y * H }));
-      if (pts.length === 1) return Math.hypot(px - pts[0].x, py - pts[0].y) <= T;
-      for (let i = 0; i < pts.length - 1; i++) {
-        if (pointSegDist(px, py, pts[i].x, pts[i].y, pts[i+1].x, pts[i+1].y) <= T) return true;
-      }
-      return false;
-    }
-    case 'line': {
-      if (stroke.points.length < 2) return false;
-      const a = stroke.points[0], b = stroke.points[1];
-      return pointSegDist(px, py, a.x*W, a.y*H, b.x*W, b.y*H) <= T;
-    }
-    case 'rect': {
-      if (stroke.points.length < 2) return false;
-      const p1 = stroke.points[0], p2 = stroke.points[1];
-      const left = Math.min(p1.x, p2.x) * W;
-      const right = Math.max(p1.x, p2.x) * W;
-      const top = Math.min(p1.y, p2.y) * H;
-      const bottom = Math.max(p1.y, p2.y) * H;
-      return (
-        pointSegDist(px, py, left, top, right, top)   <= T || // 上
-        pointSegDist(px, py, right, top, right, bottom) <= T || // 右
-        pointSegDist(px, py, right, bottom, left, bottom) <= T || // 下
-        pointSegDist(px, py, left, bottom, left, top)   <= T    // 左
-      );
-    }
-    case 'circle': {
-      if (stroke.points.length < 2) return false;
-      if (stroke.subtype === 'ellipse') {
-        const p1 = stroke.points[0], p2 = stroke.points[1];
-        const cx = (p1.x * W + p2.x * W) / 2;
-        const cy = (p1.y * H + p2.y * H) / 2;
-        const rx = Math.abs(p2.x * W - p1.x * W) / 2;
-        const ry = Math.abs(p2.y * H - p1.y * H) / 2;
-
-        // --- 修正開始 ---
-        // 如果橢圓太扁或太窄，將其視為線段處理
-        const effectiveStrokeWidth = T / 2;
-        if (ry < effectiveStrokeWidth) { // 當作水平線
-            const left = cx - rx, right = cx + rx;
-            return pointSegDist(px, py, left, cy, right, cy) <= T;
+    function hitTestStroke(px, py, stroke, W, H, thresh) {
+      const T = thresh / 2; // 半徑
+      switch (stroke.type) {
+        case 'pen': {
+          const pts = stroke.points.map(p => ({ x: p.x * W, y: p.y * H }));
+          if (pts.length === 1) return Math.hypot(px - pts[0].x, py - pts[0].y) <= T;
+          for (let i = 0; i < pts.length - 1; i++) {
+            if (pointSegDist(px, py, pts[i].x, pts[i].y, pts[i+1].x, pts[i+1].y) <= T) return true;
+          }
+          return false;
         }
-        if (rx < effectiveStrokeWidth) { // 當作垂直線
-            const top = cy - ry, bottom = cy + ry;
-            return pointSegDist(px, py, cx, top, cx, bottom) <= T;
+        case 'line': {
+          if (stroke.points.length < 2) return false;
+          const a = stroke.points[0], b = stroke.points[1];
+          return pointSegDist(px, py, a.x*W, a.y*H, b.x*W, b.y*H) <= T;
         }
-        // --- 修正結束 ---
+        case 'rect': {
+          if (stroke.points.length < 2) return false;
+          const p1 = stroke.points[0], p2 = stroke.points[1];
+          const left = Math.min(p1.x, p2.x) * W;
+          const right = Math.max(p1.x, p2.x) * W;
+          const top = Math.min(p1.y, p2.y) * H;
+          const bottom = Math.max(p1.y, p2.y) * H;
+          return (
+            pointSegDist(px, py, left, top, right, top)   <= T || // 上
+            pointSegDist(px, py, right, top, right, bottom) <= T || // 右
+            pointSegDist(px, py, right, bottom, left, bottom) <= T || // 下
+            pointSegDist(px, py, left, bottom, left, top)   <= T    // 左
+          );
+        }
+        case 'circle': {
+          if (stroke.points.length < 2) return false;
+          if (stroke.subtype === 'ellipse') {
+            const p1 = stroke.points[0], p2 = stroke.points[1];
+            const cx = (p1.x * W + p2.x * W) / 2;
+            const cy = (p1.y * H + p2.y * H) / 2;
+            const rx = Math.abs(p2.x * W - p1.x * W) / 2;
+            const ry = Math.abs(p2.y * H - p1.y * H) / 2;
 
-        // 對於正常的橢圓，使用原始的數學公式
-        const dx = px - cx, dy = py - cy;
-        // 加上對除以零的保護
-        if (rx === 0 || ry === 0) return false;
-        const v = Math.sqrt((dx * dx) / (rx * rx) + (dy * dy) / (ry * ry));
-        const dist = Math.abs(v - 1) * Math.max(rx, ry);
-        return dist <= T;
-      } else { // 圓形的邏輯不變
-        const c = stroke.points[0], e = stroke.points[1];
-        const cx = c.x * W, cy = c.y * H;
-        const radius = Math.hypot(e.x * W - cx, e.y * H - cy);
-        const d = Math.hypot(px - cx, py - cy);
-        return Math.abs(d - radius) <= T;
+            // --- 修正開始 ---
+            // 如果橢圓太扁或太窄，將其視為線段處理
+            const effectiveStrokeWidth = T / 2;
+            if (ry < effectiveStrokeWidth) { // 當作水平線
+                const left = cx - rx, right = cx + rx;
+                return pointSegDist(px, py, left, cy, right, cy) <= T;
+            }
+            if (rx < effectiveStrokeWidth) { // 當作垂直線
+                const top = cy - ry, bottom = cy + ry;
+                return pointSegDist(px, py, cx, top, cx, bottom) <= T;
+            }
+            // --- 修正結束 ---
+
+            // 對於正常的橢圓，使用原始的數學公式
+            const dx = px - cx, dy = py - cy;
+            // 加上對除以零的保護
+            if (rx === 0 || ry === 0) return false;
+            const v = Math.sqrt((dx * dx) / (rx * rx) + (dy * dy) / (ry * ry));
+            const dist = Math.abs(v - 1) * Math.max(rx, ry);
+            return dist <= T;
+          } else { // 圓形的邏輯不變
+            const c = stroke.points[0], e = stroke.points[1];
+            const cx = c.x * W, cy = c.y * H;
+            const radius = Math.hypot(e.x * W - cx, e.y * H - cy);
+            const d = Math.hypot(px - cx, py - cy);
+            return Math.abs(d - radius) <= T;
+          }
+        }
+        default:
+          return false;
       }
     }
-    default:
-      return false;
-  }
-}
 
-function eraseAtPoint(event) {
-  const r = canvas.getBoundingClientRect();
-  const x = event.clientX - r.left;
-  const y = event.clientY - r.top;
-  let changed = false;
-  const strokesToKeep = [];
+    function eraseAtPoint(event) {
+      const r = canvas.getBoundingClientRect();
+      const x = event.clientX - r.left;
+      const y = event.clientY - r.top;
+      let changed = false;
+      const strokesToKeep = [];
 
-  for (const stroke of draw.strokes) {
-    const thresh = Math.max(10, stroke.widthNorm * r.width);
-    const hit = hitTestStroke(x, y, stroke, r.width, r.height, thresh);
-    if (hit) {
-      changed = true;
-    } else {
-      strokesToKeep.push(stroke);
+      for (const stroke of draw.strokes) {
+        const thresh = Math.max(10, stroke.widthNorm * r.width);
+        const hit = hitTestStroke(x, y, stroke, r.width, r.height, thresh);
+        if (hit) {
+          changed = true;
+        } else {
+          strokesToKeep.push(stroke);
+        }
+      }
+
+      if (changed) {
+        saveUndoState(item);
+        draw.strokes = strokesToKeep;
+        redrawAll();
+        updateButtonsState();
+      }
     }
-  }
-
-  if (changed) {
-    saveUndoState(item);
-    draw.strokes = strokesToKeep;
-    redrawAll();
-    updateButtonsState();
-  }
-}
 
 
       canvas.addEventListener('pointerdown', (e)=>{
@@ -860,13 +887,18 @@ function eraseAtPoint(event) {
       canvas.addEventListener('pointercancel', endInteraction);
 
       wireMove(item, bar);
-      wireResize(item, resizer, ()=> { sizeToImage(true); repositionTexts(); });
+      wireResize(item, resizer, ()=> { sizeToImage(true); repositionTexts(); updateTransformInputs(item); });
 
       item.addEventListener('pointerdown', (e)=>{ if (e.target.closest('.move-bar') || e.target.closest('.resizer')) return; selectItem(item); });
       
       img.addEventListener('load', ()=>{
         const natW = img.naturalWidth; if (natW) item.style.width = Math.min(560, natW) + 'px';
-        requestAnimationFrame(()=> sizeToImage(false));
+        requestAnimationFrame(()=> {
+            sizeToImage(false);
+            if (selected === item) {
+                updateTransformInputs(item);
+            }
+        });
       });
 
       return item;
@@ -911,6 +943,22 @@ function eraseAtPoint(event) {
         textBox.focus(); const range = document.createRange(); range.selectNodeContents(textBox);
         const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
     }
+    
+    // --- NEW: Function to update transform input fields ---
+    function updateTransformInputs(item) {
+        if (item) {
+            canvasWidthInput.value = item.offsetWidth;
+            canvasHeightInput.value = item.offsetHeight;
+            canvasXInput.value = item.offsetLeft;
+            canvasYInput.value = item.offsetTop;
+        } else {
+            canvasWidthInput.value = '';
+            canvasHeightInput.value = '';
+            canvasXInput.value = '';
+            canvasYInput.value = '';
+        }
+    }
+
 
     function selectItem(item){
       if (selected === item) return;
@@ -926,6 +974,7 @@ function eraseAtPoint(event) {
         const newLi = document.getElementById('li-' + selected.id);
         if(newLi) newLi.classList.add('active');
       }
+      updateTransformInputs(selected); // Update inputs on selection change
       updateCanvasPointerStates();
       updateButtonsState();
     }
@@ -956,6 +1005,11 @@ function eraseAtPoint(event) {
     function updateButtonsState(){
       const hasSel = !!selected;
       reLayoutBtn.disabled = deleteBtn.disabled = exportBtn.disabled = addTextBtn.disabled = !hasSel;
+      
+      // NEW: Update state for transform controls
+      transformControls.classList.toggle('disabled', !hasSel);
+      canvasWidthInput.disabled = canvasHeightInput.disabled = canvasXInput.disabled = canvasYInput.disabled = !hasSel;
+
       const hasStrokes = hasSel && selected._draw && selected._draw.strokes.length > 0;
       const canUndo = hasSel && selected._undoStack && selected._undoStack.length > 0;
       undoBtn.disabled = !canUndo;
@@ -965,7 +1019,13 @@ function eraseAtPoint(event) {
     function wireMove(item, handle){
       let dragging = false; let startX=0, startY=0, startL=0, startT=0;
       const onDown = (e)=>{ dragging = true; handle.style.cursor='grabbing'; startX=e.clientX; startY=e.clientY; startL=item.offsetLeft; startT=item.offsetTop; handle.setPointerCapture(e.pointerId); };
-      const onMove = (e)=>{ if(!dragging) return; const dx=e.clientX-startX, dy=e.clientY-startY; item.style.left=(startL+dx)+'px'; item.style.top=(startT+dy)+'px'; };
+      const onMove = (e)=>{ 
+          if(!dragging) return; 
+          const dx=e.clientX-startX, dy=e.clientY-startY; 
+          item.style.left=(startL+dx)+'px'; 
+          item.style.top=(startT+dy)+'px'; 
+          updateTransformInputs(item); // Update inputs on move
+      };
       const onUp = ()=>{ dragging=false; handle.style.cursor='grab'; };
       handle.addEventListener('pointerdown', onDown);
       handle.addEventListener('pointermove', onMove);
@@ -976,18 +1036,64 @@ function eraseAtPoint(event) {
     function wireResize(item, handle, onResized){
       let resizing=false, startX=0, startW=0;
       handle.addEventListener('pointerdown', (e)=>{ resizing=true; startX=e.clientX; startW=item.clientWidth; handle.setPointerCapture(e.pointerId); e.stopPropagation(); });
-      const onMove = (e)=>{ if(!resizing) return; const dx=e.clientX-startX; item.style.width=Math.max(120, startW+dx)+'px'; if (onResized) onResized(); };
+      const onMove = (e)=>{ 
+          if(!resizing) return; 
+          const dx=e.clientX-startX; 
+          item.style.width=Math.max(120, startW+dx)+'px'; 
+          if (onResized) onResized(); 
+      };
       const stop=(e)=>{ if (!resizing) return; resizing=false; e.stopPropagation(); };
       window.addEventListener('pointermove', onMove);
       window.addEventListener('pointerup', stop);
     }
+    
+    // --- NEW: Add event listeners for transform inputs ---
+    canvasWidthInput.addEventListener('input', () => {
+        if (!selected) return;
+        const img = selected.querySelector('img');
+        if (!img || !img.naturalWidth) return;
+        const newWidth = parseInt(canvasWidthInput.value, 10);
+        if (isNaN(newWidth) || newWidth < 10) return;
+
+        selected.style.width = newWidth + 'px';
+        selected._sizeToImage(); // This will also call updateTransformInputs
+    });
+
+    canvasHeightInput.addEventListener('input', () => {
+        if (!selected) return;
+        const img = selected.querySelector('img');
+        if (!img || !img.naturalWidth) return;
+        const newHeight = parseInt(canvasHeightInput.value, 10);
+        if (isNaN(newHeight) || newHeight < 10) return;
+        
+        const aspectRatio = img.naturalWidth / img.naturalHeight;
+        const newWidth = newHeight * aspectRatio;
+
+        selected.style.width = newWidth + 'px';
+        selected._sizeToImage(); // This will also call updateTransformInputs
+    });
+    
+    canvasXInput.addEventListener('input', () => {
+        if (!selected) return;
+        const newX = parseInt(canvasXInput.value, 10);
+        if (isNaN(newX)) return;
+        selected.style.left = newX + 'px';
+    });
+    
+    canvasYInput.addEventListener('input', () => {
+        if (!selected) return;
+        const newY = parseInt(canvasYInput.value, 10);
+        if (isNaN(newY)) return;
+        selected.style.top = newY + 'px';
+    });
+
 
     const PADDING = 25;
     let layoutNextX = PADDING;
     let layoutNextY = PADDING;
     let layoutRowMaxHeight = 0;
 
-    /** The original layout logic, now used only for initial import. */
+/** The original layout logic, now used only for initial import. */
     function positionItemInLayout(item) {
         const itemW = item.clientWidth;
         const itemH = item.clientHeight;
@@ -998,12 +1104,20 @@ function eraseAtPoint(event) {
             layoutRowMaxHeight = 0;
         }
 
+        const finalX = layoutNextX;
+        const finalY = layoutNextY;
+        
         item.style.transition = 'left 0.4s ease-in-out, top 0.4s ease-in-out';
-        item.style.left = layoutNextX + 'px';
-        item.style.top = layoutNextY + 'px';
+        item.style.left = finalX + 'px';
+        item.style.top = finalY + 'px';
         
         item.addEventListener('transitionend', () => {
             item.style.transition = '';
+            // BUG FIX: After the transition ends, update the transform inputs
+            // to show the correct final coordinates.
+            if (selected === item) {
+                updateTransformInputs(item);
+            }
         }, { once: true });
 
         layoutRowMaxHeight = Math.max(layoutRowMaxHeight, itemH);
@@ -1059,6 +1173,7 @@ function eraseAtPoint(event) {
                     itemToMove.style.top = y + 'px';
                     itemToMove.addEventListener('transitionend', () => {
                        itemToMove.style.transition = '';
+                       updateTransformInputs(itemToMove); // Update inputs after transition
                     }, { once: true });
                     return; // 任務完成
                     
@@ -1448,18 +1563,20 @@ function eraseAtPoint(event) {
       if (!selected) return;
       if (["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(e.key)) e.preventDefault();
       const step = e.shiftKey ? 10 : 2;
+      let changed = false;
       if (e.key === 'Delete' || e.key === 'Backspace') { 
           const listItem = document.getElementById('li-' + selected.id);
           if (listItem) listItem.remove();
           selected.remove(); 
           selectItem(null); 
       }
-      if (e.key === 'ArrowLeft')  selected.style.left = (selected.offsetLeft - step) + 'px';
-      if (e.key === 'ArrowRight') selected.style.left = (selected.offsetLeft + step) + 'px';
-      if (e.key === 'ArrowUp')    selected.style.top  = (selected.offsetTop - step) + 'px';
-      if (e.key === 'ArrowDown')  selected.style.top  = (selected.offsetTop + step) + 'px';
-      if (e.key === '[') { selected.style.width = Math.max(120, selected.clientWidth - step*2) + 'px'; selected._sizeToImage(); }
-      if (e.key === ']') { selected.style.width = (selected.clientWidth + step*2) + 'px'; selected._sizeToImage(); }
+      if (e.key === 'ArrowLeft')  { selected.style.left = (selected.offsetLeft - step) + 'px'; changed = true; }
+      if (e.key === 'ArrowRight') { selected.style.left = (selected.offsetLeft + step) + 'px'; changed = true; }
+      if (e.key === 'ArrowUp')    { selected.style.top  = (selected.offsetTop - step) + 'px'; changed = true; }
+      if (e.key === 'ArrowDown')  { selected.style.top  = (selected.offsetTop + step) + 'px'; changed = true; }
+      if (e.key === '[') { selected.style.width = Math.max(120, selected.clientWidth - step*2) + 'px'; selected._sizeToImage(); changed = true; }
+      if (e.key === ']') { selected.style.width = (selected.clientWidth + step*2) + 'px'; selected._sizeToImage(); changed = true; }
+      if (changed) updateTransformInputs(selected);
     });
 
     window.addEventListener('paste', async (e) => {
